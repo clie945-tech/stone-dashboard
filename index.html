@@ -336,6 +336,19 @@ tbody td{padding:8px 8px;}
       <button class="ann-add" style="margin-top:8px" onclick="addAnn()">＋ 新增公告</button>
     </div>
 
+    <!-- 匯出 / 匯入 -->
+    <div class="admin-sec" style="border-color:rgba(255,204,0,.2);background:rgba(255,204,0,.03)">
+      <div class="admin-sec-title" style="color:var(--yellow)">▸ 資料備份與還原</div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <button class="ann-add" style="color:var(--yellow);border-color:rgba(255,204,0,.4);background:rgba(255,204,0,.08)" onclick="exportData()">📥 匯出資料備份</button>
+        <label style="cursor:pointer">
+          <span class="ann-add" style="color:var(--green);border-color:rgba(0,255,136,.4);background:rgba(0,255,136,.08);display:inline-block;">📤 匯入資料還原</span>
+          <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+        </label>
+        <span style="font-size:13px;color:var(--text);opacity:.45;letter-spacing:1px">升版前先匯出，升版後再匯入，資料不流失</span>
+      </div>
+    </div>
+
     <div style="text-align:right;margin-top:4px">
       <button class="save-btn" onclick="saveAll()">💾 儲存並套用</button>
     </div>
@@ -803,6 +816,42 @@ function renderAnnAdmin(){
 function delAnn(i){D.announcements.splice(i,1);renderAnnAdmin();}
 function addAnn(){D.announcements.push('新公告內容');renderAnnAdmin();}
 function closeAdmin(){document.getElementById('adminModal').classList.remove('open');}
+
+function exportData(){
+  const now=new Date(),p=x=>String(x).padStart(2,'0');
+  const fname=`scc-backup-${now.getFullYear()}${p(now.getMonth()+1)}${p(now.getDate())}-${p(now.getHours())}${p(now.getMinutes())}.json`;
+  const blob=new Blob([JSON.stringify(D,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=fname;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function importData(e){
+  const file=e.target.files[0];
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    try{
+      const imported=JSON.parse(ev.target.result);
+      if(!imported.groups||!imported.center){alert('檔案格式不正確，請確認是否為正確的備份檔。');return;}
+      if(!confirm(`確定要載入備份「${file.name}」？\n目前資料將被覆蓋，此動作無法復原。`)){e.target.value='';return;}
+      // 保留目前版本號與密碼（避免版本衝突）
+      imported.version=DATA_VERSION;
+      if(!imported.pw)imported.pw=D.pw;
+      Object.assign(D,imported);
+      persist(D);
+      renderAll();
+      closeAdmin();
+      alert('✅ 資料已成功還原！');
+    }catch(err){
+      alert('載入失敗，請確認檔案內容是否正確。');
+    }
+    e.target.value='';
+  };
+  reader.readAsText(file);
+}
 
 function saveAll(){
   const np=document.getElementById('newPW').value;
