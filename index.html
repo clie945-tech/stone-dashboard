@@ -482,7 +482,8 @@ function counter(el,target,dur=1500,dec=0){
   const step=ts=>{
     if(!s)s=ts;
     const p=Math.min((ts-s)/dur,1),e=1-Math.pow(1-p,3);
-    el.textContent=(e*target).toFixed(dec);
+    const val=e*target;
+    el.textContent=dec>0?val.toFixed(dec):Math.round(val).toLocaleString();
     if(p<1)requestAnimationFrame(step);
   };
   requestAnimationFrame(step);
