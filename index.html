@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>石資中心戰情看板</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 <style>
 :root{
   --bg:#0a0e1a;--cyan:#00d4ff;--blue:#0066ff;
@@ -57,10 +58,10 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;
 .cg-divider{width:1px;height:70px;background:linear-gradient(to bottom,transparent,var(--border),transparent);margin:0 20px;flex-shrink:0;}
 .cg-vdivider{display:none;}
 .cg-item{text-align:center;padding:8px 16px;}
-.cg-label{font-size:15px;letter-spacing:3px;color:var(--cyan);opacity:.6;margin-bottom:10px;text-transform:uppercase;}
+.cg-label{font-size:30px;letter-spacing:3px;color:var(--cyan);opacity:.6;margin-bottom:10px;text-transform:uppercase;}
 .cg-value{font-size:57px;font-weight:800;color:#fff;line-height:1;}
-.cg-unit{font-size:21px;color:var(--cyan);margin-left:3px;font-weight:400;}
-.cg-sub{font-size:16px;color:var(--text);opacity:.5;margin-top:6px;}
+.cg-unit{font-size:21px;color:#ddeeff;margin-left:3px;font-weight:400;}
+.cg-sub{font-size:16px;color:#ddeeff;opacity:.75;margin-top:6px;}
 
 /* 大達成率 */
 .cg-rate-big{font-size:96px;font-weight:900;color:var(--cyan);line-height:1;
@@ -104,7 +105,7 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;
 .gc-bar-wrap{height:6px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden;margin:10px 0 8px;}
 .gc-bar-fill{height:100%;border-radius:3px;transition:width 1.6s cubic-bezier(.25,.46,.45,.94);}
 
-.gc-row{display:flex;justify-content:space-between;font-size:16px;color:var(--text);opacity:.65;padding:3px 0;}
+.gc-row{display:flex;justify-content:space-between;font-size:16px;color:#ddeeff;opacity:.9;padding:3px 0;}
 .gc-row b{color:#fff;font-weight:600;opacity:1;}
 .gc-row span:last-child{text-align:right;}
 
@@ -183,6 +184,10 @@ tbody td{padding:8px 8px;}
 .ann-del:hover{background:rgba(255,68,102,.15);}
 .ann-add{background:rgba(0,212,255,.08);border:1px solid var(--border);color:var(--cyan);padding:6px 14px;border-radius:6px;cursor:pointer;font-size:16px;letter-spacing:1px;transition:all .2s;font-family:inherit;}
 .ann-add:hover{background:rgba(0,212,255,.15);}
+.grp-del{background:none;border:1px solid rgba(255,68,102,.35);color:var(--red);padding:5px 12px;border-radius:6px;cursor:pointer;font-size:15px;letter-spacing:1px;transition:all .2s;font-family:inherit;width:100%;margin-top:6px;}
+.grp-del:hover{background:rgba(255,68,102,.15);}
+.grp-add{background:rgba(0,212,255,.08);border:1px dashed rgba(0,212,255,.4);color:var(--cyan);padding:10px;border-radius:8px;cursor:pointer;font-size:17px;letter-spacing:2px;transition:all .2s;font-family:inherit;width:100%;margin-top:10px;}
+.grp-add:hover{background:rgba(0,212,255,.15);border-style:solid;}
 .save-btn{background:linear-gradient(135deg,#0055cc,#00aaff);border:none;color:#fff;padding:11px 32px;border-radius:8px;cursor:pointer;font-size:20px;font-weight:600;letter-spacing:2px;transition:all .3s;box-shadow:0 0 16px rgba(0,170,255,.25);font-family:inherit;}
 .save-btn:hover{box-shadow:0 0 24px rgba(0,170,255,.55);transform:translateY(-1px);}
 
@@ -214,6 +219,10 @@ tbody td{padding:8px 8px;}
   <div>
     <div class="h-title">⬡ 石資中心戰情看板</div>
     <div class="h-sub"><span class="dot dot-g"></span>REAL-TIME OPERATIONS DASHBOARD</div>
+  </div>
+  <div style="text-align:center;">
+    <div style="font-size:14px;letter-spacing:2px;color:var(--cyan);opacity:.45;margin-bottom:4px;">最後更新</div>
+    <div id="lastUpdatedDisp" style="font-size:18px;letter-spacing:1px;color:#ddeeff;opacity:.7;">--</div>
   </div>
   <div>
     <div class="clock" id="clock">--:--:--</div>
@@ -261,49 +270,6 @@ tbody td{padding:8px 8px;}
 </div>
 
 <!-- ══════════════════════════════
-     達成率表格
-══════════════════════════════ -->
-<div>
-  <div class="gc">
-    <div class="chart-ttl">▍各組達成率一覽</div>
-    <table>
-      <thead><tr><th>組室</th><th>年度目標</th><th>目前實績</th><th>達成率</th><th>狀態</th></tr></thead>
-      <tbody id="tBody"></tbody>
-    </table>
-    <div style="height:16px"></div>
-    <div class="chart-ttl" style="margin-top:4px">▍業績排行榜</div>
-    <div id="rankList"></div>
-  </div>
-</div>
-
-<!-- ══════════════════════════════
-     營運關鍵指標 + 案件
-══════════════════════════════ -->
-<div class="three-col">
-  <div class="gc">
-    <div class="chart-ttl">▍案件總覽</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
-      <div style="text-align:center;padding:12px;background:rgba(0,212,255,.05);border-radius:8px;border:1px solid rgba(0,212,255,.12)">
-        <div style="font-size:48px;font-weight:700;color:#fff" id="kpi-cases">--</div>
-        <div style="font-size:15px;letter-spacing:1px;color:var(--cyan);opacity:.6;margin-top:4px">案件總數</div>
-      </div>
-      <div style="text-align:center;padding:12px;background:rgba(0,212,255,.05);border-radius:8px;border:1px solid rgba(0,212,255,.12)">
-        <div style="font-size:48px;font-weight:700;color:var(--yellow)" id="kpi-sat">--</div>
-        <div style="font-size:15px;letter-spacing:1px;color:var(--cyan);opacity:.6;margin-top:4px">客戶滿意度</div>
-      </div>
-    </div>
-    <div class="mrow"><span class="mname">進行中案件</span><span class="mval" id="k-ongoing" style="color:var(--cyan)">--</span></div>
-    <div class="mrow"><span class="mname">已結案件</span><span class="mval" id="k-closed" style="color:var(--green)">--</span></div>
-    <div class="mrow"><span class="mname">逾期案件</span><span class="mval" id="k-overdue" style="color:var(--red)">--</span></div>
-    <div class="mrow"><span class="mname">NPS 指數</span><span class="mval" id="k-nps" style="color:var(--yellow)">--</span></div>
-  </div>
-  <div class="gc" style="grid-column:span 2">
-    <div class="chart-ttl">▍中心營運關鍵指標</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0" id="metricList"></div>
-  </div>
-</div>
-
-<!-- ══════════════════════════════
      跑馬燈
 ══════════════════════════════ -->
 <div class="mq-wrap">
@@ -345,45 +311,22 @@ tbody td{padding:8px 8px;}
     <!-- 中心目標 -->
     <div class="admin-sec">
       <div class="admin-sec-title">▸ 中心年度目標</div>
-      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px">
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:10px">
         <div class="field-row"><label>年度目標（千元）</label><input type="number" id="f-ctarget" placeholder="9300"></div>
         <div class="field-row"><label>目標說明（選填）</label><input type="text" id="f-cdesc" placeholder="例：113年度業績目標"></div>
       </div>
-      <div style="font-size:13px;color:var(--cyan);opacity:.5;margin-top:6px;letter-spacing:1px">※ 目前實績、政府款達成現況、工業服務達成現況 均自動從各組室資料加總，無需手動輸入</div>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px">
+        <div class="field-row"><label>政府款年度目標（千元）</label><input type="number" id="f-govtarget" placeholder="5500"></div>
+        <div class="field-row"><label>工業服務年度目標（千元）</label><input type="number" id="f-indtarget" placeholder="3800"></div>
+      </div>
+      <div style="font-size:13px;color:var(--cyan);opacity:.5;margin-top:6px;letter-spacing:1px">※ 目前實績、政府款達成現況、工業服務達成現況 均自動從各組室資料加總</div>
     </div>
 
     <!-- 各組資料 -->
     <div class="admin-sec">
       <div class="admin-sec-title">▸ 各組室年度目標與實績</div>
       <div class="admin-grid" id="groupAdmin"></div>
-    </div>
-
-    <!-- 案件 / 客戶 -->
-    <div class="admin-sec">
-      <div class="admin-sec-title">▸ 案件與客戶指標</div>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
-        <div class="field-row"><label>案件總數（件）</label><input type="number" id="f-cases"></div>
-        <div class="field-row"><label>進行中案件</label><input type="number" id="f-ongoing"></div>
-        <div class="field-row"><label>已結案件</label><input type="number" id="f-closed"></div>
-        <div class="field-row"><label>逾期案件</label><input type="number" id="f-overdue"></div>
-        <div class="field-row"><label>客戶滿意度（分）</label><input type="number" id="f-sat" step="0.1"></div>
-        <div class="field-row"><label>NPS 指數</label><input type="number" id="f-nps"></div>
-      </div>
-    </div>
-
-    <!-- 月度 -->
-    <div class="admin-sec">
-      <div class="admin-sec-title">▸ 月度累積業績（近 6 個月）</div>
-      <table class="mon-table">
-        <thead><tr><th>月份</th><th>目標累積（千元）</th><th>實績累積（千元）</th></tr></thead>
-        <tbody id="monBody"></tbody>
-      </table>
-    </div>
-
-    <!-- 關鍵指標 -->
-    <div class="admin-sec">
-      <div class="admin-sec-title">▸ 營運關鍵指標（值 / 漲跌幅 / 方向）</div>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px" id="metricsAdmin"></div>
+      <button class="grp-add" onclick="addGroup()">＋ 新增組別</button>
     </div>
 
     <!-- 公告 -->
@@ -405,14 +348,15 @@ tbody td{padding:8px 8px;}
 /* ════════════════════════════════
    預設資料
 ════════════════════════════════ */
-const DATA_VERSION = 3; // 每次新增組室或結構異動時遞增
+const DATA_VERSION = 5; // 每次新增組室或結構異動時遞增
 const DEFAULT = {
-  version: DATA_VERSION,
+  version: DATA_VERSION, // bump forces localStorage reset
   pw: '1234',
-  center: { target: 9300, actual: 7955, desc: '113年度業績目標' },
+  lastUpdated: null,
+  center: { target: 9300, desc: '113年度業績目標', govTarget: 5500, indTarget: 3800 },
   groups: [
-    { id:'S', name:'S 組', color:'#00d4ff', target:3000, gov:1320, ind:1100, unit:'千元' },
-    { id:'W', name:'W 組', color:'#00ff88', target:2500, gov:1500, ind:1125, unit:'千元' },
+    { id:'S', name:'S 組', color:'#00ff88', target:3000, gov:1320, ind:1100, unit:'千元' },
+    { id:'W', name:'W 組', color:'#00d4ff', target:2500, gov:1500, ind:1125, unit:'千元' },
     { id:'P', name:'P 組', color:'#ffcc00', target:2000, gov:860,  ind:700,  unit:'千元' },
     { id:'D', name:'D 組', color:'#aa66ff', target:1800, gov:750,  ind:600,  unit:'千元' },
     { id:'C', name:'C 組', color:'#ff8844', target:1500, gov:600,  ind:450,  unit:'千元' },
@@ -499,17 +443,24 @@ function counterPct(el,target,dur=1800){
 /* ════════════════════════════════
    Render All
 ════════════════════════════════ */
+Chart.register(ChartDataLabels);
 let barInst=null;
 
 function renderAll(){
   renderCenterGoal();
   renderGroups();
   renderBarChart();
-  renderTable();
-  renderRank();
-  renderKPI();
-  renderMetrics();
   renderMarquee();
+  // 更新時間顯示
+  const el=document.getElementById('lastUpdatedDisp');
+  if(el){
+    if(D.lastUpdated){
+      const d=new Date(D.lastUpdated),p=x=>String(x).padStart(2,'0');
+      el.textContent=`${d.getFullYear()}/${p(d.getMonth()+1)}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+    } else {
+      el.textContent='尚未更新';
+    }
+  }
 }
 
 /* ── 中心年度目標 ── */
@@ -520,11 +471,14 @@ function renderCenterGoal(){
   const totalGov=D.groups.reduce((s,g)=>s+(g.gov||0),0); // 各組政府計畫加總
   const totalInd=D.groups.reduce((s,g)=>s+(g.ind||0),0); // 各組工業服務加總
   const tgt=c.target||totalT;
-  const act=totalA; // 永遠直接使用各組加總，不允許手動覆蓋
+  const act=totalA;
   const rate=act/tgt*100;
   const remaining=tgt-act;
-  const statusCls=rate>=100?'b-g':rate>=80?'b-y':'b-r';
-  const statusLbl=rate>=100?'已達標':rate>=80?'追蹤中':'需加強';
+  const govTgt=c.govTarget||0;
+  const indTgt=c.indTarget||0;
+  const govRate=govTgt>0?Math.min(totalGov/govTgt*100,100):0;
+  const indRate=indTgt>0?Math.min(totalInd/indTgt*100,100):0;
+
   const cont=document.getElementById('centerGoal');
   cont.innerHTML=`
     <div class="cg-stats-row">
@@ -536,20 +490,38 @@ function renderCenterGoal(){
       <div class="cg-divider"></div>
       <div class="cg-item">
         <div class="cg-label">目前實績</div>
-        <div><span class="cg-value" id="cg-act" style="color:var(--cyan)">0</span><span class="cg-unit">千元</span></div>
-        <div class="cg-sub" style="color:var(--cyan);opacity:.5">各組室加總</div>
+        <div><span class="cg-value" id="cg-act" style="color:#ddeeff">0</span><span class="cg-unit">千元</span></div>
+        <div class="cg-sub">各組室加總</div>
       </div>
       <div class="cg-divider"></div>
       <div class="cg-item">
         <div class="cg-label">政府款達成現況</div>
-        <div><span class="cg-value" id="cg-gov" style="color:var(--green)">0</span><span class="cg-unit" style="color:var(--green)">千元</span></div>
-        <div class="cg-sub" style="color:var(--green);opacity:.5">各組政府計畫加總</div>
+        <div style="display:flex;align-items:baseline;gap:6px;justify-content:center;">
+          <span class="cg-value" id="cg-gov" style="color:#ddeeff">0</span>
+          <span style="font-size:18px;color:#ddeeff">千元</span>
+          <span style="font-size:20px;color:#ddeeff;margin:0 4px;opacity:.5">/</span>
+          <span style="font-size:22px;color:#ddeeff;">${govTgt.toLocaleString()}</span>
+          <span style="font-size:16px;color:#ddeeff;opacity:.7"> 千元</span>
+        </div>
+        <div style="margin-top:8px;height:5px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden;">
+          <div style="height:100%;width:${govRate.toFixed(1)}%;background:linear-gradient(90deg,var(--green)99,var(--green));border-radius:3px;transition:width 1.6s cubic-bezier(.25,.46,.45,.94);"></div>
+        </div>
+        <div class="cg-sub" style="color:#ddeeff;opacity:.75;margin-top:4px;">${govRate.toFixed(1)}%</div>
       </div>
       <div class="cg-divider"></div>
       <div class="cg-item">
         <div class="cg-label">工業服務達成現況</div>
-        <div><span class="cg-value" id="cg-ind" style="color:var(--yellow)">0</span><span class="cg-unit" style="color:var(--yellow)">千元</span></div>
-        <div class="cg-sub" style="color:var(--yellow);opacity:.5">各組工業服務加總</div>
+        <div style="display:flex;align-items:baseline;gap:6px;justify-content:center;">
+          <span class="cg-value" id="cg-ind" style="color:#ddeeff">0</span>
+          <span style="font-size:18px;color:#ddeeff">千元</span>
+          <span style="font-size:20px;color:#ddeeff;margin:0 4px;opacity:.5">/</span>
+          <span style="font-size:22px;color:#ddeeff;">${indTgt.toLocaleString()}</span>
+          <span style="font-size:16px;color:#ddeeff;opacity:.7"> 千元</span>
+        </div>
+        <div style="margin-top:8px;height:5px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden;">
+          <div style="height:100%;width:${indRate.toFixed(1)}%;background:linear-gradient(90deg,var(--yellow)99,var(--yellow));border-radius:3px;transition:width 1.6s cubic-bezier(.25,.46,.45,.94);"></div>
+        </div>
+        <div class="cg-sub" style="color:#ddeeff;opacity:.75;margin-top:4px;">${indRate.toFixed(1)}%</div>
       </div>
     </div>
     <div class="cg-vdivider"></div>
@@ -563,10 +535,7 @@ function renderCenterGoal(){
       </div>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:2px;">
         <span style="font-size:16px;color:var(--text);opacity:.45;">0</span>
-        <div style="display:flex;align-items:center;gap:14px;">
-          <span class="badge ${statusCls}" style="font-size:17px;padding:5px 16px;">${statusLbl}</span>
-          <span style="font-size:16px;color:var(--text);opacity:.5;">差距&nbsp;<b style="color:${remaining>0?'var(--yellow)':'var(--green)'};">${remaining>0?'－'+remaining.toLocaleString():'＋'+Math.abs(remaining).toLocaleString()}</b>&nbsp;千元</span>
-        </div>
+        <span style="font-size:16px;color:var(--text);opacity:.5;">差距&nbsp;<b style="color:${remaining>0?'var(--yellow)':'var(--green)'};">${remaining>0?'－'+remaining.toLocaleString():'＋'+Math.abs(remaining).toLocaleString()}</b>&nbsp;千元</span>
         <span style="font-size:16px;color:var(--text);opacity:.45;">${tgt.toLocaleString()}</span>
       </div>
     </div>
@@ -582,7 +551,7 @@ function renderCenterGoal(){
 }
 
 /* ── 各組室年度目標 ── */
-const GC_BG=['rgba(0,212,255,.06)','rgba(0,255,136,.06)','rgba(255,204,0,.06)','rgba(170,102,255,.06)','rgba(255,136,68,.06)'];
+function hexToRgba(hex,a){const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);return `rgba(${r},${g},${b},${a})`;}
 function gActual(g){ return (g.gov||0)+(g.ind||0); }
 function renderGroups(){
   const cont=document.getElementById('groupGrid');
@@ -591,8 +560,6 @@ function renderGroups(){
   D.groups.forEach((g,i)=>{
     const actual=gActual(g);
     const rate=actual/g.target*100;
-    const cls=rate>=100?'b-g':rate>=80?'b-y':'b-r';
-    const lbl=rate>=100?'已達標':rate>=80?'追蹤中':'需加強';
     const rem=g.target-actual;
     // ring SVG params
     const rid=`ring-g-${i}`,R=58,CX=80,CY=80,SW=18;
@@ -600,7 +567,7 @@ function renderGroups(){
     const offset=+(circ*(1-Math.min(rate,100)/100)).toFixed(2);
     rings.push({id:rid,offset,color:g.color});
     cont.innerHTML+=`
-    <div class="group-card" style="background:${GC_BG[i]};border:1px solid ${g.color}33;">
+    <div class="group-card" style="background:${hexToRgba(g.color,.06)};border:1px solid ${g.color}33;">
       <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,${g.color}00,${g.color},${g.color}00)"></div>
       <!-- 標題行 -->
       <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px">
@@ -608,7 +575,6 @@ function renderGroups(){
           <div class="gc-id" style="color:${g.color};text-shadow:0 0 20px ${g.color}66;line-height:1">${g.id}</div>
           <div class="gc-name" style="margin-top:2px">${g.name}</div>
         </div>
-        <span class="badge ${cls}" style="margin-top:4px">${lbl}</span>
       </div>
       <!-- 圓環圖 -->
       <div style="text-align:center;margin:6px 0 10px">
@@ -626,11 +592,11 @@ function renderGroups(){
       <!-- 業績明細 -->
       <div style="padding:10px 12px;background:rgba(0,0,0,.2);border-radius:8px;border:1px solid rgba(255,255,255,.06);margin-bottom:8px">
         <div class="gc-row" style="margin-bottom:5px">
-          <span style="opacity:.7">政府計畫</span>
+          <span style="color:#ddeeff">政府計畫</span>
           <span style="color:${g.color};font-weight:600">${(g.gov||0).toLocaleString()} ${g.unit}</span>
         </div>
         <div class="gc-row" style="margin-bottom:6px">
-          <span style="opacity:.7">工業服務</span>
+          <span style="color:#ddeeff">工業服務</span>
           <span style="color:${g.color};font-weight:600">${(g.ind||0).toLocaleString()} ${g.unit}</span>
         </div>
         <div style="height:1px;background:rgba(255,255,255,.1);margin-bottom:6px"></div>
@@ -641,8 +607,8 @@ function renderGroups(){
       </div>
       <div class="gc-row"><span>年度目標</span><span><b>${g.target.toLocaleString()}</b> ${g.unit}</span></div>
       <div class="gc-row" style="margin-top:5px;padding-top:6px;border-top:1px solid rgba(255,255,255,.06)">
-        <span style="opacity:.5">距目標差距</span>
-        <span style="color:${rem>0?'var(--yellow)':'var(--green)'}">
+        <span style="color:#ddeeff">距目標差距</span>
+        <span style="color:${rem>0?'var(--red)':'var(--green)'}">
           ${rem>0?'－'+rem.toLocaleString():'＋'+Math.abs(rem).toLocaleString()} ${g.unit}
         </span>
       </div>
@@ -695,10 +661,18 @@ function renderBarChart(){
           callbacks:{
             label:ctx=>`${ctx.dataset.label}：${ctx.parsed.y.toLocaleString()} 千元`
           }
+        },
+        datalabels:{
+          anchor:'end',
+          align:'end',
+          offset:4,
+          color: ctx => ctx.datasetIndex===0 ? 'rgba(180,210,255,.85)' : D.groups[ctx.dataIndex]?.color || '#fff',
+          font:{size:13,weight:'700'},
+          formatter: v => v.toLocaleString(),
         }
       },
       scales:{
-        x:{ticks:{color:'#c8e0ff',font:{size:13,weight:'600'}},grid:{color:'rgba(0,212,255,.05)'}},
+        x:{ticks:{color:'#c8e0ff',font:{size:26,weight:'600'}},grid:{color:'rgba(0,212,255,.05)'}},
         y:{ticks:{color:'#88aabb',font:{size:11},callback:v=>v.toLocaleString()},grid:{color:'rgba(0,212,255,.06)'}},
       },
       animation:{duration:1200,easing:'easeOutCubic'},
@@ -707,70 +681,7 @@ function renderBarChart(){
 }
 
 /* ── 表格 ── */
-function renderTable(){
-  const tb=document.getElementById('tBody');
-  tb.innerHTML='';
-  D.groups.forEach(g=>{
-    const actual=gActual(g);
-    const r=actual/g.target*100;
-    const cls=r>=100?'b-g':r>=80?'b-y':'b-r';
-    const lbl=r>=100?'達標':r>=80?'追蹤':'預警';
-    tb.innerHTML+=`<tr>
-      <td><b style="color:${g.color}">${g.name}</b></td>
-      <td>${g.target.toLocaleString()}</td>
-      <td>
-        <div style="font-size:12px;opacity:.6">政府計畫 ${(g.gov||0).toLocaleString()}</div>
-        <div style="font-size:12px;opacity:.6">工業服務 ${(g.ind||0).toLocaleString()}</div>
-        <div style="color:${g.color};font-weight:600;margin-top:2px">${actual.toLocaleString()}</div>
-      </td>
-      <td style="font-weight:700;color:#fff">${r.toFixed(1)}%</td>
-      <td><span class="badge ${cls}">${lbl}</span></td>
-    </tr>`;
-  });
-}
-
 /* ── 排行 ── */
-function renderRank(){
-  const sorted=[...D.groups].sort((a,b)=>gActual(b)-gActual(a));
-  const max=gActual(sorted[0]);
-  const cont=document.getElementById('rankList');
-  cont.innerHTML='';
-  sorted.forEach((g,i)=>{
-    const actual=gActual(g);
-    const pct=Math.round(actual/max*100);
-    cont.innerHTML+=`<div class="rank-item">
-      <div style="width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;flex-shrink:0;background:${i===0?'#ffcc00':i===1?'#aaa':i===2?'#b87333':'rgba(255,255,255,.1)'};color:${i<3?'#000':'#c8e0ff'}">${i+1}</div>
-      <div style="flex:1;font-size:20px">${g.name}</div>
-      <div style="width:70px;height:4px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden">
-        <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,${g.color}66,${g.color});border-radius:2px"></div>
-      </div>
-      <div style="font-size:18px;font-weight:600;color:${g.color};min-width:52px;text-align:right">${actual.toLocaleString()}</div>
-    </div>`;
-  });
-}
-
-/* ── KPI ── */
-function renderKPI(){
-  const k=D.kpi;
-  counter(document.getElementById('kpi-cases'),k.cases);
-  counter(document.getElementById('kpi-sat'),k.sat,1400,1);
-  document.getElementById('k-ongoing').textContent=k.ongoing+' 件';
-  document.getElementById('k-closed').textContent=k.closed+' 件';
-  document.getElementById('k-overdue').textContent=k.overdue+' 件';
-  document.getElementById('k-nps').textContent='+'+k.nps;
-}
-
-/* ── 指標 ── */
-function renderMetrics(){
-  const cont=document.getElementById('metricList');
-  cont.innerHTML='';
-  D.metrics.forEach(m=>{
-    cont.innerHTML+=`<div class="mrow" style="padding:8px 10px">
-      <span class="mname">${m.name}</span>
-      <span><span class="mval">${m.val}</span>&nbsp;<span class="mdt ${m.up?'up':'dn'}">${m.up?'▲':'▼'} ${m.delta}</span></span>
-    </div>`;
-  });
-}
 
 /* ── 跑馬燈 ── */
 function renderMarquee(){
@@ -800,27 +711,40 @@ function checkPW(){
    Admin
 ════════════════════════════════ */
 function openAdmin(){
-  const k=D.kpi,c=D.center;
+  const c=D.center;
   // center
   document.getElementById('f-ctarget').value=c.target;
   document.getElementById('f-cdesc').value=c.desc||'';
-  // kpi
-  document.getElementById('f-cases').value=k.cases;
-  document.getElementById('f-ongoing').value=k.ongoing;
-  document.getElementById('f-closed').value=k.closed;
-  document.getElementById('f-overdue').value=k.overdue;
-  document.getElementById('f-sat').value=k.sat;
-  document.getElementById('f-nps').value=k.nps;
+  document.getElementById('f-govtarget').value=c.govTarget||'';
+  document.getElementById('f-indtarget').value=c.indTarget||'';
   document.getElementById('newPW').value='';
   document.getElementById('confPW').value='';
 
-  // groups
+  renderGroupAdmin();
+  renderAnnAdmin();
+  document.getElementById('adminModal').classList.add('open');
+}
+
+function renderGroupAdmin(){
   const gc=document.getElementById('groupAdmin');
   gc.innerHTML='';
   D.groups.forEach((g,i)=>{
-    gc.innerHTML+=`<div class="admin-group-card" style="border-color:${g.color}44">
-      <div class="admin-group-title" style="color:${g.color}">[ ${g.id} 組 ] ${g.name}</div>
-      <div class="field-row"><label>組別名稱</label><input type="text" id="ag-name-${i}" value="${g.name}"></div>
+    gc.innerHTML+=`<div class="admin-group-card" style="border-color:${g.color}55">
+      <div class="admin-group-title" style="color:${g.color}">[ ${g.id} ] ${g.name}</div>
+      <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end;margin-bottom:9px">
+        <div class="field-row" style="margin-bottom:0"><label>組別名稱</label><input type="text" id="ag-name-${i}" value="${g.name}"></div>
+        <div class="field-row" style="margin-bottom:0">
+          <label>代號</label>
+          <input type="text" id="ag-id-${i}" value="${g.id}" style="width:52px;text-align:center;font-weight:700">
+        </div>
+      </div>
+      <div class="field-row"><label>顏色</label>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="color" id="ag-color-${i}" value="${g.color}"
+            style="width:44px;height:34px;border:none;background:none;cursor:pointer;padding:0;border-radius:4px;">
+          <span id="ag-color-hex-${i}" style="font-size:14px;opacity:.55;font-family:monospace">${g.color}</span>
+        </div>
+      </div>
       <div class="field-row"><label>年度目標（${g.unit}）</label><input type="number" id="ag-t-${i}" value="${g.target}"></div>
       <div style="background:rgba(0,0,0,.2);border-radius:6px;padding:10px;margin-bottom:9px;border:1px solid rgba(255,255,255,.06)">
         <div style="font-size:11px;letter-spacing:1px;color:var(--cyan);opacity:.55;margin-bottom:8px">目前實績拆分</div>
@@ -832,39 +756,30 @@ function openAdmin(){
         </div>
       </div>
       <div class="field-row"><label>單位</label><input type="text" id="ag-u-${i}" value="${g.unit}"></div>
+      <button class="grp-del" onclick="removeGroup(${i})">✕ 移除此組別</button>
     </div>`;
   });
-
-  // monthly
-  const mb=document.getElementById('monBody');
-  mb.innerHTML='';
-  D.monthly.forEach((m,i)=>{
-    mb.innerHTML+=`<tr>
-      <td><input id="ml-${i}" value="${m.label}" style="width:55px"></td>
-      <td><input type="number" id="mt-${i}" value="${m.target}"></td>
-      <td><input type="number" id="ma-${i}" value="${m.actual}"></td>
-    </tr>`;
+  // 綁定顏色選取器即時更新 hex 顯示
+  D.groups.forEach((_,i)=>{
+    const inp=document.getElementById(`ag-color-${i}`);
+    if(inp) inp.addEventListener('input',()=>{
+      document.getElementById(`ag-color-hex-${i}`).textContent=inp.value;
+    });
   });
+}
 
-  // metrics
-  const ma=document.getElementById('metricsAdmin');
-  ma.innerHTML='';
-  D.metrics.forEach((m,i)=>{
-    ma.innerHTML+=`<div style="display:flex;flex-direction:column;gap:4px">
-      <label style="font-size:15px;color:var(--cyan);opacity:.6;letter-spacing:1px">${m.name}</label>
-      <div style="display:flex;gap:4px">
-        <input id="mv-${i}" value="${m.val}" style="flex:1;background:rgba(0,0,0,.4);border:1px solid var(--border);border-radius:5px;color:#fff;padding:5px 7px;font-size:16px;outline:none;font-family:inherit" placeholder="值">
-        <input id="md-${i}" value="${m.delta}" style="width:54px;background:rgba(0,0,0,.4);border:1px solid var(--border);border-radius:5px;color:#fff;padding:5px 6px;font-size:16px;outline:none;font-family:inherit" placeholder="±">
-        <select id="mu-${i}" style="background:rgba(0,0,0,.4);border:1px solid var(--border);border-radius:5px;color:#fff;padding:5px 4px;font-size:16px;outline:none">
-          <option value="1" ${m.up?'selected':''}>▲</option>
-          <option value="0" ${!m.up?'selected':''}>▼</option>
-        </select>
-      </div>
-    </div>`;
-  });
+function addGroup(){
+  const colors=['#00bcd4','#e91e63','#ff9800','#9c27b0','#4caf50','#f44336','#2196f3','#ffeb3b'];
+  const used=D.groups.map(g=>g.color);
+  const color=colors.find(c=>!used.includes(c))||'#aaaaaa';
+  D.groups.push({id:'新',name:'新組別',color,target:0,gov:0,ind:0,unit:'千元'});
+  renderGroupAdmin();
+}
 
-  renderAnnAdmin();
-  document.getElementById('adminModal').classList.add('open');
+function removeGroup(i){
+  if(!confirm(`確定要移除「${D.groups[i].name}」？此操作需儲存後才生效。`))return;
+  D.groups.splice(i,1);
+  renderGroupAdmin();
 }
 
 function updateActualPreview(i){
@@ -897,35 +812,22 @@ function saveAll(){
   D.center={
     target:+document.getElementById('f-ctarget').value||D.center.target,
     desc:document.getElementById('f-cdesc').value||D.center.desc,
-  };
-  D.kpi={
-    cases:+document.getElementById('f-cases').value||D.kpi.cases,
-    ongoing:+document.getElementById('f-ongoing').value||D.kpi.ongoing,
-    closed:+document.getElementById('f-closed').value||D.kpi.closed,
-    overdue:+document.getElementById('f-overdue').value||D.kpi.overdue,
-    sat:+document.getElementById('f-sat').value||D.kpi.sat,
-    nps:+document.getElementById('f-nps').value||D.kpi.nps,
+    govTarget:+document.getElementById('f-govtarget').value||D.center.govTarget,
+    indTarget:+document.getElementById('f-indtarget').value||D.center.indTarget,
   };
   D.groups.forEach((g,i)=>{
-    g.name=document.getElementById(`ag-name-${i}`).value||g.name;
-    g.target=+document.getElementById(`ag-t-${i}`).value||g.target;
-    g.gov=+document.getElementById(`ag-gov-${i}`).value||0;
-    g.ind=+document.getElementById(`ag-ind-${i}`).value||0;
-    g.unit=document.getElementById(`ag-u-${i}`).value||g.unit;
-  });
-  D.monthly.forEach((m,i)=>{
-    m.label=document.getElementById(`ml-${i}`).value||m.label;
-    m.target=+document.getElementById(`mt-${i}`).value||m.target;
-    m.actual=+document.getElementById(`ma-${i}`).value;
-  });
-  D.metrics.forEach((m,i)=>{
-    m.val=document.getElementById(`mv-${i}`).value;
-    m.delta=document.getElementById(`md-${i}`).value;
-    m.up=document.getElementById(`mu-${i}`).value==='1';
+    g.id=document.getElementById(`ag-id-${i}`)?.value?.trim()||g.id;
+    g.name=document.getElementById(`ag-name-${i}`)?.value||g.name;
+    g.color=document.getElementById(`ag-color-${i}`)?.value||g.color;
+    g.target=+document.getElementById(`ag-t-${i}`)?.value||g.target;
+    g.gov=+document.getElementById(`ag-gov-${i}`)?.value||0;
+    g.ind=+document.getElementById(`ag-ind-${i}`)?.value||0;
+    g.unit=document.getElementById(`ag-u-${i}`)?.value||g.unit;
   });
   D.announcements=[];
   document.querySelectorAll('[id^="ann-"]').forEach(el=>{if(el.value.trim())D.announcements.push(el.value.trim());});
 
+  D.lastUpdated=new Date().toISOString();
   persist(D);
   renderAll();
   closeAdmin();
