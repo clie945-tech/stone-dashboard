@@ -592,8 +592,14 @@ async function syncToCloud(){
     for(let i=0;i<n;i++){
       show('☁ 同步雲端中… '+(i+1)+'/'+n);
       const url=base+'&action=chunk&i='+i+'&n='+n+'&d='+encodeURIComponent(chunks[i]);
-      const j=await(await fetch(url,{cache:'no-store'})).json();
-      if(!j.ok) throw new Error(j.error||('chunk '+i+' fail'));
+      let ok=false,lastErr='';
+      for(let a=0;a<3&&!ok;a++){              // 每塊重試最多 3 次
+        try{ const j=await(await fetch(url,{cache:'no-store'})).json(); if(j.ok){ok=true;}else{lastErr=j.error||'';} }
+        catch(e){ lastErr=String(e); }
+        if(!ok) await new Promise(s=>setTimeout(s,600));
+      }
+      if(!ok) throw new Error('chunk '+i+'：'+lastErr);
+      await new Promise(s=>setTimeout(s,250));  // 塊間間隔，避免突發限流
     }
     show('✓ 已儲存並同步雲端'); hideLater();
   }catch(e){
