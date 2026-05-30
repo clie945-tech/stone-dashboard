@@ -82,6 +82,17 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;
 .cg-stat-v{font-size:24px;font-weight:700;}
 .cg-stat-l{font-size:14px;letter-spacing:1px;opacity:.5;margin-top:2px;}
 
+/* AI 戰情室 */
+.ai-btn{background:linear-gradient(135deg,rgba(0,212,255,.18),rgba(170,102,255,.18));border:1px solid rgba(0,212,255,.5);
+  color:#fff;padding:9px 18px;border-radius:8px;cursor:pointer;font-size:16px;letter-spacing:1px;font-family:inherit;
+  transition:all .2s;white-space:nowrap;}
+.ai-btn:hover{background:linear-gradient(135deg,rgba(0,212,255,.3),rgba(170,102,255,.3));box-shadow:0 0 18px rgba(0,212,255,.3);}
+.ai-input{flex:1;min-width:200px;background:rgba(0,0,0,.4);border:1px solid var(--border);border-radius:8px;color:#fff;
+  padding:9px 14px;font-size:16px;outline:none;font-family:inherit;}
+.ai-input:focus{border-color:var(--cyan);}
+.ai-box{background:rgba(0,212,255,.04);border:1px solid rgba(0,212,255,.15);border-radius:10px;padding:16px 18px;
+  font-size:16px;line-height:1.9;color:#ddeeff;min-height:54px;white-space:pre-wrap;}
+
 /* badge */
 .badge{display:inline-block;padding:3px 8px;border-radius:4px;font-size:15px;font-weight:600;}
 /* 追蹤燈號 */
@@ -324,6 +335,32 @@ tbody td{padding:8px 8px;}
       <div style="min-width:480px;">
         <canvas id="barChart" height="520"></canvas>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- AI 戰情室 -->
+<div>
+  <div class="sec-head">
+    <div class="sec-title">▍AI 戰情室</div>
+    <div class="sec-line"></div>
+  </div>
+  <div class="gc">
+    <!-- 智能分析 -->
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
+      <button class="ai-btn" onclick="aiAnalyze()">🧠 產生智能戰情分析</button>
+      <span style="font-size:13px;color:var(--text);opacity:.4;">由 AI 即時讀取目前數據產生管理簡報</span>
+    </div>
+    <div id="aiAnalyzeBox" class="ai-box">點上方按鈕，AI 將分析目前戰情並提出建議。</div>
+
+    <!-- 數據問答 -->
+    <div style="margin-top:18px;border-top:1px solid rgba(255,255,255,.08);padding-top:16px;">
+      <div style="font-size:15px;color:var(--cyan);opacity:.7;letter-spacing:2px;margin-bottom:10px;">💬 數據問答</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <input id="aiQ" class="ai-input" placeholder="例：哪一組落後最多？政府款還差多少？" onkeydown="if(event.key==='Enter')aiAsk()">
+        <button class="ai-btn" onclick="aiAsk()">詢問</button>
+      </div>
+      <div id="aiAskBox" class="ai-box" style="margin-top:10px;display:none;"></div>
     </div>
   </div>
 </div>
@@ -586,6 +623,28 @@ async function bootstrap(){
   }
   renderAll();
 }
+/* ── AI 戰情室 ── */
+function aiEscape(t){ return (t||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function aiAnalyze(){
+  const box=document.getElementById('aiAnalyzeBox');
+  if(!CLOUD_URL){ box.textContent='⚠ 尚未設定雲端，無法使用 AI'; return; }
+  box.innerHTML='<span style="opacity:.6">🧠 AI 分析中，請稍候…</span>';
+  jsonp(CLOUD_URL+'?action=ai&mode=analyze')
+    .then(j=>{ box.innerHTML = j.ok ? aiEscape(j.text) : ('⚠ '+(j.error||'分析失敗')); })
+    .catch(()=>{ box.innerHTML='⚠ 連線失敗，請稍後再試'; });
+}
+function aiAsk(){
+  const q=document.getElementById('aiQ').value.trim();
+  const box=document.getElementById('aiAskBox');
+  if(!q)return;
+  if(!CLOUD_URL){ box.style.display='block'; box.textContent='⚠ 尚未設定雲端，無法使用 AI'; return; }
+  box.style.display='block';
+  box.innerHTML='<span style="opacity:.6">💬 思考中…</span>';
+  jsonp(CLOUD_URL+'?action=ai&mode=ask&q='+encodeURIComponent(q))
+    .then(j=>{ box.innerHTML = j.ok ? aiEscape(j.text) : ('⚠ '+(j.error||'回答失敗')); })
+    .catch(()=>{ box.innerHTML='⚠ 連線失敗，請稍後再試'; });
+}
+
 // 雲端連線診斷（非破壞性：不會覆蓋正式資料）
 async function testCloud(){
   const out=document.getElementById('cloudTestResult');
