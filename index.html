@@ -563,20 +563,17 @@ async function bootstrap(){
   }
   renderAll();
 }
-// 存檔：以 GET 方式寫回雲端（瀏覽器對 Apps Script 的 GET 不受 CORS 阻擋）
+// 存檔：以 POST 表單方式寫回雲端（form-encoded 為簡單請求，不觸發 CORS preflight，且無 URL 長度限制）
 function syncToCloud(){
   if(!CLOUD_URL)return;
   const t=document.getElementById('toast');
-  const payload=encodeURIComponent(JSON.stringify(D));
-  const url=CLOUD_URL+'?action=save&token='+encodeURIComponent(CLOUD_TOKEN)+'&data='+payload;
-  if(url.length>14000){
-    if(t)t.textContent='⚠ 資料量過大，無法雲端同步（已存本機）';
-    return;
-  }
-  fetch(url,{cache:'no-store'})
-    .then(r=>r.json())
-    .then(j=>{ if(t)t.textContent=j.ok?'✓ 已儲存並同步雲端':('⚠ 雲端同步失敗：'+(j.error||'')); })
-    .catch(()=>{ if(t)t.textContent='⚠ 已存本機，雲端連線失敗'; });
+  fetch(CLOUD_URL,{
+    method:'POST',
+    body:new URLSearchParams({token:CLOUD_TOKEN,data:JSON.stringify(D)})
+  })
+  .then(r=>r.json())
+  .then(j=>{ if(t)t.textContent=j.ok?'✓ 已儲存並同步雲端':('⚠ 雲端同步失敗：'+(j.error||'')); })
+  .catch(()=>{ if(t)t.textContent='⚠ 已存本機，雲端連線失敗'; });
 }
 
 /* ════════════════════════════════
