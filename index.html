@@ -842,11 +842,11 @@ function renderGroups(){
       <div style="padding:10px 12px;background:rgba(0,0,0,.2);border-radius:8px;border:1px solid rgba(255,255,255,.06);margin-bottom:8px">
         <div class="gc-row" style="margin-bottom:5px">
           <span style="color:#ddeeff">政府計畫</span>
-          <span style="color:${g.color};font-weight:600">${(g.gov||0).toLocaleString()} ${g.unit}</span>
+          <span style="color:${g.color};font-weight:600">${(g.gov||0).toLocaleString()} ${g.unit}<span style="opacity:.55;font-weight:400;font-size:13px;margin-left:4px">(${actual>0?Math.round((g.gov||0)/actual*100):0}%)</span></span>
         </div>
         <div class="gc-row" style="margin-bottom:6px">
           <span style="color:#ddeeff">工業服務</span>
-          <span style="color:${g.color};font-weight:600">${(g.ind||0).toLocaleString()} ${g.unit}</span>
+          <span style="color:${g.color};font-weight:600">${(g.ind||0).toLocaleString()} ${g.unit}<span style="opacity:.55;font-weight:400;font-size:13px;margin-left:4px">(${actual>0?Math.round((g.ind||0)/actual*100):0}%)</span></span>
         </div>
         <div style="height:1px;background:rgba(255,255,255,.1);margin-bottom:6px"></div>
         <div class="gc-row">
