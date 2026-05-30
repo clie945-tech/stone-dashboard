@@ -812,9 +812,14 @@ function renderCalendar(){
           <div style="font-size:15px;letter-spacing:2px;color:var(--cyan);opacity:.7;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid rgba(0,212,255,.15);">${date}</div>
           <div style="display:flex;flex-direction:column;gap:6px;">`;
         items.forEach(ev=>{
-          html+=`<div style="display:flex;align-items:baseline;gap:12px;padding:7px 12px;background:rgba(0,212,255,.04);border-radius:7px;border-left:3px solid rgba(0,212,255,.4);">
-            <span style="font-size:14px;color:var(--cyan);opacity:.7;min-width:44px;flex-shrink:0;">${ev.time}</span>
-            <span style="font-size:17px;color:#ddeeff;">${ev.title}</span>
+          const loc=ev.location?`<div style="font-size:13px;color:var(--cyan);opacity:.6;margin-top:3px;">📍 ${ev.location}</div>`:'';
+          const desc=ev.description?`<div style="font-size:13px;color:#ddeeff;opacity:.5;margin-top:3px;white-space:pre-wrap;">${ev.description}</div>`:'';
+          html+=`<div style="padding:8px 12px;background:rgba(0,212,255,.04);border-radius:7px;border-left:3px solid rgba(0,212,255,.4);">
+            <div style="display:flex;align-items:baseline;gap:12px;">
+              <span style="font-size:14px;color:var(--cyan);opacity:.7;min-width:44px;flex-shrink:0;">${ev.time}</span>
+              <span style="font-size:17px;color:#ddeeff;">${ev.title}</span>
+            </div>
+            ${loc}${desc}
           </div>`;
         });
         html+='</div></div>';
@@ -1086,6 +1091,8 @@ function saveAll(){
 }
 
 window.addEventListener('load',renderAll);
+// 每小時自動刷新行事曆
+setInterval(renderCalendar, 60 * 60 * 1000);
 </script>
 </body>
 </html>
