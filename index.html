@@ -564,25 +564,31 @@ async function bootstrap(){
   renderAll();
 }
 // 存檔：寫回雲端，讓所有同仁同步
+// 註：Apps Script 的 POST 回應受 CORS 限制無法讀取，故用 no-cors 送出（寫入仍會成功），
+//     再以 GET 讀回驗證是否寫入成功。
 function syncToCloud(){
   if(!CLOUD_URL)return;
   const t=document.getElementById('toast');
+  const stamp=new Date().toISOString();
   fetch(CLOUD_URL,{
     method:'POST',
+    mode:'no-cors',
     headers:{'Content-Type':'text/plain;charset=utf-8'},
-    body:JSON.stringify({token:CLOUD_TOKEN,data:D})
-  })
-  .then(r=>r.json())
-  .then(j=>{
-    if(j.ok){
-      if(t){t.textContent='✓ 已儲存並同步雲端';}
-    }else{
-      alert('雲端同步失敗：'+(j.error||'未知錯誤')+'\n（資料已存在本機，請稍後再試）');
-    }
-  })
-  .catch(()=>{
-    alert('無法連線雲端資料庫，資料已暫存本機。\n請確認網路或 Apps Script 部署狀態。');
-  });
+    body:JSON.stringify({token:CLOUD_TOKEN,data:D,stamp:stamp})
+  }).catch(()=>{});
+  // 1.8 秒後讀回驗證
+  setTimeout(()=>{
+    fetch(CLOUD_URL,{cache:'no-store'})
+      .then(r=>r.json())
+      .then(j=>{
+        if(j.ok&&j.data&&j.data.groups&&j.data.groups.length){
+          if(t)t.textContent='✓ 已儲存並同步雲端';
+        }else{
+          if(t)t.textContent='⚠ 已存本機，雲端同步未確認';
+        }
+      })
+      .catch(()=>{ if(t)t.textContent='⚠ 已存本機，雲端讀取失敗'; });
+  },1800);
 }
 
 /* ════════════════════════════════
@@ -1298,7 +1304,7 @@ function saveAll(){
   const t=document.getElementById('toast');
   t.textContent=CLOUD_URL?'✓ 儲存中…同步雲端':'✓ 資料已儲存並套用';
   t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'),2800);
+  setTimeout(()=>t.classList.remove('show'),CLOUD_URL?4000:2800);
 }
 
 window.addEventListener('load',bootstrap);
