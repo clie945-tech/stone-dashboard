@@ -322,6 +322,19 @@ tbody td{padding:8px 8px;}
   <div class="mq-text" id="mqText"></div>
 </div>
 
+<!-- 本週重要事項 -->
+<div>
+  <div class="sec-head">
+    <div class="sec-title">▍本週重要事項</div>
+    <div class="sec-line"></div>
+  </div>
+  <div class="gc" id="calSection">
+    <div id="calContent" style="min-height:80px;display:flex;align-items:center;justify-content:center;">
+      <span style="color:var(--cyan);opacity:.4;letter-spacing:2px;font-size:16px">載入中…</span>
+    </div>
+  </div>
+</div>
+
 </div><!-- /wrap -->
 
 <!-- 後台按鈕 -->
@@ -374,6 +387,24 @@ tbody td{padding:8px 8px;}
       <button class="grp-add" onclick="addGroup()">＋ 新增組別</button>
     </div>
 
+    <!-- Google Calendar -->
+    <div class="admin-sec">
+      <div class="admin-sec-title">▸ 本週重要事項（Google Calendar）</div>
+      <div class="field-row">
+        <label>Google Apps Script 網址</label>
+        <input type="text" id="f-calurl" placeholder="https://script.google.com/macros/s/…/exec" style="font-size:13px;">
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;margin-top:6px;">
+        <button class="ann-add" onclick="testCalUrl()" style="padding:5px 14px;">🔗 測試連線</button>
+        <span id="calTestResult" style="font-size:14px;opacity:.7;"></span>
+      </div>
+      <div style="font-size:13px;color:var(--cyan);opacity:.45;margin-top:8px;line-height:1.8;">
+        ① 開啟 <b>script.google.com</b> → 新增專案 → 貼上腳本程式碼<br>
+        ② 部署 → 新增部署 → 類型選「網頁應用程式」→ 存取權選「所有人」<br>
+        ③ 複製部署網址貼到上方欄位
+      </div>
+    </div>
+
     <!-- 公告 -->
     <div class="admin-sec">
       <div class="admin-sec-title">▸ 跑馬燈公告訊息</div>
@@ -411,6 +442,7 @@ const DEFAULT = {
   version: DATA_VERSION, // bump forces localStorage reset
   pw: '1234',
   lastUpdated: null,
+  calUrl: '',
   center: { target: 9300, desc: '113年度業績目標', govTarget: 5500, indTarget: 3800 },
   groups: [
     { id:'S', name:'S 組', color:'#00ff88', target:3000, gov:1320, ind:1100, unit:'千元' },
@@ -510,6 +542,7 @@ function renderAll(){
   renderGroups();
   renderBarChart();
   renderMarquee();
+  renderCalendar();
   // 更新時間顯示
   const el=document.getElementById('lastUpdatedDisp');
   if(el){
@@ -742,6 +775,70 @@ function renderBarChart(){
 /* ── 表格 ── */
 /* ── 排行 ── */
 
+/* ── 本週行事曆 ── */
+function renderCalendar(){
+  const cont=document.getElementById('calContent');
+  if(!cont)return;
+  if(!D.calUrl){
+    cont.innerHTML=`<div style="text-align:center;padding:20px;color:var(--cyan);opacity:.35;font-size:15px;letter-spacing:2px;">尚未設定 Google Calendar 連結<br><span style="font-size:13px;opacity:.7">請至後台管理設定 Apps Script 網址</span></div>`;
+    return;
+  }
+  cont.innerHTML=`<div style="text-align:center;padding:20px;color:var(--cyan);opacity:.4;font-size:15px;">🔄 載入行事曆資料中…</div>`;
+  fetch(D.calUrl)
+    .then(r=>r.json())
+    .then(data=>{
+      if(!data.ok||!data.events){throw new Error('格式錯誤');}
+      const evs=data.events;
+      if(evs.length===0){
+        cont.innerHTML=`<div style="text-align:center;padding:20px;color:var(--text);opacity:.4;font-size:15px;">本週尚無行程</div>`;
+        return;
+      }
+      // 按日期分組
+      const groups={};
+      evs.forEach(e=>{if(!groups[e.date])groups[e.date]=[];groups[e.date].push(e);});
+      let html='<div style="display:flex;flex-direction:column;gap:14px;">';
+      Object.entries(groups).forEach(([date,items])=>{
+        html+=`<div>
+          <div style="font-size:15px;letter-spacing:2px;color:var(--cyan);opacity:.7;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid rgba(0,212,255,.15);">${date}</div>
+          <div style="display:flex;flex-direction:column;gap:6px;">`;
+        items.forEach(ev=>{
+          html+=`<div style="display:flex;align-items:baseline;gap:12px;padding:7px 12px;background:rgba(0,212,255,.04);border-radius:7px;border-left:3px solid rgba(0,212,255,.4);">
+            <span style="font-size:14px;color:var(--cyan);opacity:.7;min-width:44px;flex-shrink:0;">${ev.time}</span>
+            <span style="font-size:17px;color:#ddeeff;">${ev.title}</span>
+          </div>`;
+        });
+        html+='</div></div>';
+      });
+      html+='</div>';
+      if(data.updated){
+        const d=new Date(data.updated),p=x=>String(x).padStart(2,'0');
+        html+=`<div style="text-align:right;margin-top:12px;font-size:13px;color:var(--text);opacity:.3;">資料更新：${d.getMonth()+1}/${d.getDate()} ${p(d.getHours())}:${p(d.getMinutes())}</div>`;
+      }
+      cont.innerHTML=html;
+    })
+    .catch(()=>{
+      cont.innerHTML=`<div style="text-align:center;padding:20px;color:var(--red);opacity:.7;font-size:15px;">⚠️ 無法取得行事曆資料<br><span style="font-size:13px;opacity:.7">請確認 Apps Script 網址是否正確，或連線是否正常</span></div>`;
+    });
+}
+
+function testCalUrl(){
+  const url=document.getElementById('f-calurl').value.trim();
+  const el=document.getElementById('calTestResult');
+  if(!url){el.style.color='var(--yellow)';el.textContent='請先填入網址';return;}
+  el.style.color='var(--cyan)';el.textContent='測試中…';
+  fetch(url)
+    .then(r=>r.json())
+    .then(data=>{
+      if(data.ok&&data.events!==undefined){
+        el.style.color='var(--green)';
+        el.textContent=`✅ 連線成功！本週共 ${data.events.length} 筆行程`;
+      } else {
+        el.style.color='var(--yellow)';el.textContent='⚠️ 回應格式不符，請確認腳本是否正確';
+      }
+    })
+    .catch(()=>{el.style.color='var(--red)';el.textContent='❌ 連線失敗，請確認網址與部署設定';});
+}
+
 /* ── 跑馬燈 ── */
 function renderMarquee(){
   document.getElementById('mqText').textContent=
@@ -772,6 +869,8 @@ function checkPW(){
 function openAdmin(){
   const c=D.center;
   // center
+  document.getElementById('f-calurl').value=D.calUrl||'';
+  document.getElementById('calTestResult').textContent='';
   document.getElementById('f-ctarget').value=c.target;
   document.getElementById('f-cdesc').value=c.desc||'';
   document.getElementById('f-govtarget').value=c.govTarget||'';
@@ -922,6 +1021,7 @@ function saveAll(){
   D.announcements=[];
   document.querySelectorAll('[id^="ann-"]').forEach(el=>{if(el.value.trim())D.announcements.push(el.value.trim());});
 
+  D.calUrl=document.getElementById('f-calurl').value.trim();
   D.lastUpdated=new Date().toISOString();
   persist(D);
   renderAll();
