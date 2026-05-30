@@ -329,8 +329,10 @@ tbody td{padding:8px 8px;}
     <div class="sec-line"></div>
   </div>
   <div class="gc" id="calSection">
-    <div id="calContent" style="min-height:80px;display:flex;align-items:center;justify-content:center;">
+    <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+    <div id="calContent" style="min-height:80px;display:flex;align-items:center;justify-content:center;min-width:700px;">
       <span style="color:var(--cyan);opacity:.4;letter-spacing:2px;font-size:16px">載入中…</span>
+    </div>
     </div>
   </div>
 </div>
@@ -798,36 +800,68 @@ function renderCalendar(){
     .then(data=>{
       if(!data.ok||!data.events){throw new Error('格式錯誤');}
       const evs=data.events;
-      const calLabel=data.calName?`<div style="font-size:13px;color:var(--cyan);opacity:.45;margin-bottom:12px;letter-spacing:1px;">📅 ${data.calName}</div>`:'';
-      if(evs.length===0){
-        cont.innerHTML=calLabel+`<div style="text-align:center;padding:20px;color:var(--text);opacity:.4;font-size:15px;">本週尚無行程</div>`;
-        return;
-      }
-      // 按日期分組
-      const groups={};
-      evs.forEach(e=>{if(!groups[e.date])groups[e.date]=[];groups[e.date].push(e);});
-      let html=calLabel+'<div style="display:flex;flex-direction:column;gap:14px;">';
-      Object.entries(groups).forEach(([date,items])=>{
-        html+=`<div>
-          <div style="font-size:15px;letter-spacing:2px;color:var(--cyan);opacity:.7;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid rgba(0,212,255,.15);">${date}</div>
-          <div style="display:flex;flex-direction:column;gap:6px;">`;
-        items.forEach(ev=>{
-          const loc=ev.location?`<div style="font-size:13px;color:var(--cyan);opacity:.6;margin-top:3px;">📍 ${ev.location}</div>`:'';
-          const desc=ev.description?`<div style="font-size:13px;color:#ddeeff;opacity:.5;margin-top:3px;white-space:pre-wrap;">${ev.description}</div>`:'';
-          html+=`<div style="padding:8px 12px;background:rgba(0,212,255,.04);border-radius:7px;border-left:3px solid rgba(0,212,255,.4);">
-            <div style="display:flex;align-items:baseline;gap:12px;">
-              <span style="font-size:14px;color:var(--cyan);opacity:.7;min-width:44px;flex-shrink:0;">${ev.time}</span>
-              <span style="font-size:17px;color:#ddeeff;">${ev.title}</span>
-            </div>
-            ${loc}${desc}
-          </div>`;
+
+      // 產生本週一到日的日期欄
+      const now=new Date();
+      const todayStr=`${now.getMonth()+1}/${now.getDate()}`;
+      const day=now.getDay();
+      const diffToMon=(day===0)?-6:1-day;
+      const weekDays=[];
+      const dayNames=['日','一','二','三','四','五','六'];
+      for(let i=0;i<7;i++){
+        const d=new Date(now);
+        d.setDate(now.getDate()+diffToMon+i);
+        weekDays.push({
+          dateKey:`${d.getMonth()+1}/${d.getDate()} (${dayNames[d.getDay()]})`,
+          label:dayNames[d.getDay()],
+          md:`${d.getMonth()+1}/${d.getDate()}`,
+          isToday:d.getDate()===now.getDate()&&d.getMonth()===now.getMonth(),
+          events:[]
         });
-        html+='</div></div>';
+      }
+      evs.forEach(e=>{
+        const md=e.date.split(' ')[0]; // "5/28"
+        const col=weekDays.find(w=>w.md===md);
+        if(col)col.events.push(e);
       });
-      html+='</div>';
+
+      const calLabel=data.calName?`<div style="font-size:13px;color:var(--cyan);opacity:.45;margin-bottom:14px;letter-spacing:1px;">📅 ${data.calName}</div>`:'';
+
+      // 週曆格線
+      let html=calLabel+`<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px;">`;
+      weekDays.forEach(col=>{
+        const isToday=col.isToday;
+        const headerBg=isToday?'rgba(0,212,255,.18)':'rgba(0,212,255,.06)';
+        const headerBorder=isToday?'rgba(0,212,255,.7)':'rgba(0,212,255,.2)';
+        const headerColor=isToday?'#fff':'rgba(200,224,255,.7)';
+        html+=`<div style="display:flex;flex-direction:column;gap:6px;">
+          <!-- 日期標頭 -->
+          <div style="text-align:center;padding:8px 4px;background:${headerBg};border:1px solid ${headerBorder};border-radius:8px;${isToday?'box-shadow:0 0 12px rgba(0,212,255,.25);':''}">
+            <div style="font-size:18px;font-weight:700;color:${isToday?'var(--cyan)':'rgba(200,224,255,.8)'};">${col.label}</div>
+            <div style="font-size:13px;color:${headerColor};opacity:.8;margin-top:2px;">${col.md}</div>
+            ${isToday?'<div style="font-size:10px;color:var(--cyan);letter-spacing:1px;margin-top:2px;opacity:.8;">今天</div>':''}
+          </div>
+          <!-- 行程列表 -->
+          <div style="display:flex;flex-direction:column;gap:5px;min-height:40px;">`;
+        if(col.events.length===0){
+          html+=`<div style="flex:1;border-radius:6px;border:1px dashed rgba(255,255,255,.06);min-height:30px;"></div>`;
+        } else {
+          col.events.forEach(ev=>{
+            const loc=ev.location?`<div style="font-size:11px;color:var(--cyan);opacity:.6;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">📍 ${ev.location}</div>`:'';
+            const desc=ev.description?`<div style="font-size:11px;color:#ddeeff;opacity:.45;margin-top:2px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${ev.description}</div>`:'';
+            html+=`<div style="padding:7px 8px;background:rgba(0,212,255,.06);border-radius:6px;border-left:3px solid ${isToday?'var(--cyan)':'rgba(0,212,255,.35)'};cursor:default;">
+              <div style="font-size:12px;color:var(--cyan);opacity:.7;margin-bottom:3px;">${ev.time}</div>
+              <div style="font-size:13px;color:#ddeeff;line-height:1.4;">${ev.title}</div>
+              ${loc}${desc}
+            </div>`;
+          });
+        }
+        html+=`</div></div>`;
+      });
+      html+=`</div>`;
       if(data.updated){
         const d=new Date(data.updated),p=x=>String(x).padStart(2,'0');
-        html+=`<div style="text-align:right;margin-top:12px;font-size:13px;color:var(--text);opacity:.3;">資料更新：${d.getMonth()+1}/${d.getDate()} ${p(d.getHours())}:${p(d.getMinutes())}</div>`;
+        html+=`<div style="text-align:right;margin-top:10px;font-size:12px;color:var(--text);opacity:.3;">資料更新：${d.getMonth()+1}/${d.getDate()} ${p(d.getHours())}:${p(d.getMinutes())}</div>`;
       }
       cont.innerHTML=html;
     })
