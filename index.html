@@ -637,7 +637,7 @@ function renderCenterGoal(){
       </div>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:2px;">
         <span style="font-size:16px;color:var(--text);opacity:.45;">0</span>
-        <span style="font-size:16px;color:var(--text);opacity:.5;">差距&nbsp;<b style="color:${remaining>0?'var(--yellow)':'var(--green)'};">${remaining>0?'－'+remaining.toLocaleString():'＋'+Math.abs(remaining).toLocaleString()}</b>&nbsp;千元</span>
+        <span style="font-size:16px;color:var(--text);opacity:.5;">差距&nbsp;<b style="color:${remaining>0?'var(--red)':'var(--green)'};">${remaining>0?'－'+remaining.toLocaleString():'＋'+Math.abs(remaining).toLocaleString()}</b>&nbsp;千元</span>
         <span style="font-size:16px;color:var(--text);opacity:.45;">${tgt.toLocaleString()}</span>
       </div>
     </div>
