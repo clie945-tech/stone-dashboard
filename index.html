@@ -327,6 +327,7 @@ tbody td{padding:8px 8px;}
 <div>
   <div class="sec-head">
     <div class="sec-title">▍本週行事曆</div>
+    <span id="calUpdatedLabel" style="font-size:13px;color:var(--text);opacity:.4;white-space:nowrap;letter-spacing:1px;"></span>
     <div class="sec-line"></div>
   </div>
   <div class="gc" id="calSection">
@@ -929,7 +930,8 @@ function renderCalendar(){
       html+=`</div>`;
       if(data.updated){
         const d=new Date(data.updated),p=x=>String(x).padStart(2,'0');
-        html+=`<div style="text-align:right;margin-top:10px;font-size:12px;color:var(--text);opacity:.3;">資料更新：${d.getMonth()+1}/${d.getDate()} ${p(d.getHours())}:${p(d.getMinutes())}</div>`;
+        const lbl=document.getElementById('calUpdatedLabel');
+        if(lbl)lbl.textContent=`更新：${d.getMonth()+1}/${d.getDate()} ${p(d.getHours())}:${p(d.getMinutes())}`;
       }
       cont.innerHTML=html;
     })
