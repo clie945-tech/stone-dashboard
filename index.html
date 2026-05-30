@@ -483,7 +483,7 @@ const DATA_VERSION = 5; // 每次新增組室或結構異動時遞增
 /* ── 雲端共用資料庫（Google 試算表 + Apps Script）──
    部署後把資料庫網址填入 CLOUD_URL，所有裝置即自動同步。
    留空時退回本機 localStorage 模式。 */
-const CLOUD_URL   = '';               // ← 部署後填入 Apps Script 資料庫網址
+const CLOUD_URL   = 'https://script.google.com/macros/s/AKfycbybRnYZol5hvUNp1ZASPqxXX7rsUD7XOoPxhvPvxiQVoXEnr1VvLNla2GorS-QK9k8/exec';
 const CLOUD_TOKEN = 'srdc-stone-2026'; // 寫入金鑰（需與 Apps Script 內一致）
 const DEFAULT = {
   version: DATA_VERSION, // bump forces localStorage reset
