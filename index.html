@@ -837,9 +837,9 @@ function renderCalendar(){
         html+=`<div style="display:flex;flex-direction:column;gap:6px;">
           <!-- 日期標頭 -->
           <div style="text-align:center;padding:8px 4px;background:${headerBg};border:1px solid ${headerBorder};border-radius:8px;${isToday?'box-shadow:0 0 12px rgba(0,212,255,.25);':''}">
-            <div style="font-size:18px;font-weight:700;color:${isToday?'var(--cyan)':'rgba(200,224,255,.8)'};">${col.label}</div>
-            <div style="font-size:13px;color:${headerColor};opacity:.8;margin-top:2px;">${col.md}</div>
-            ${isToday?'<div style="font-size:10px;color:var(--cyan);letter-spacing:1px;margin-top:2px;opacity:.8;">今天</div>':''}
+            <div style="font-size:24px;font-weight:700;color:${isToday?'var(--cyan)':'rgba(200,224,255,.8)'};">${col.label}</div>
+            <div style="font-size:17px;color:${headerColor};opacity:.8;margin-top:2px;">${col.md}</div>
+            ${isToday?'<div style="font-size:13px;color:var(--cyan);letter-spacing:1px;margin-top:2px;opacity:.8;">今天</div>':''}
           </div>
           <!-- 行程列表 -->
           <div style="display:flex;flex-direction:column;gap:5px;min-height:40px;">`;
@@ -847,11 +847,11 @@ function renderCalendar(){
           html+=`<div style="flex:1;border-radius:6px;border:1px dashed rgba(255,255,255,.06);min-height:30px;"></div>`;
         } else {
           col.events.forEach(ev=>{
-            const loc=ev.location?`<div style="font-size:11px;color:var(--cyan);opacity:.6;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">📍 ${ev.location}</div>`:'';
-            const desc=ev.description?`<div style="font-size:11px;color:#ddeeff;opacity:.45;margin-top:2px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${ev.description}</div>`:'';
-            html+=`<div style="padding:7px 8px;background:rgba(0,212,255,.06);border-radius:6px;border-left:3px solid ${isToday?'var(--cyan)':'rgba(0,212,255,.35)'};cursor:default;">
-              <div style="font-size:12px;color:var(--cyan);opacity:.7;margin-bottom:3px;">${ev.time}</div>
-              <div style="font-size:13px;color:#ddeeff;line-height:1.4;">${ev.title}</div>
+            const loc=ev.location?`<div style="font-size:14px;color:var(--cyan);opacity:.6;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">📍 ${ev.location}</div>`:'';
+            const desc=ev.description?`<div style="font-size:13px;color:#ddeeff;opacity:.45;margin-top:3px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${ev.description}</div>`:'';
+            html+=`<div style="padding:9px 10px;background:rgba(0,212,255,.06);border-radius:6px;border-left:3px solid ${isToday?'var(--cyan)':'rgba(0,212,255,.35)'};cursor:default;">
+              <div style="font-size:15px;color:var(--cyan);opacity:.7;margin-bottom:4px;">${ev.time}</div>
+              <div style="font-size:16px;color:#ddeeff;line-height:1.4;">${ev.title}</div>
               ${loc}${desc}
             </div>`;
           });
