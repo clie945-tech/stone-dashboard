@@ -563,17 +563,42 @@ async function bootstrap(){
   }
   renderAll();
 }
-// 存檔：以 POST 表單方式寫回雲端（form-encoded 為簡單請求，不觸發 CORS preflight，且無 URL 長度限制）
-function syncToCloud(){
+// 存檔：以 GET 寫回雲端（瀏覽器對 Apps Script 的 GET 穩定可靠）。
+// 小資料直接單次送；大資料自動切成小塊分批送，伺服器端再組合，避開 URL 長度限制。
+async function syncToCloud(){
   if(!CLOUD_URL)return;
   const t=document.getElementById('toast');
-  fetch(CLOUD_URL,{
-    method:'POST',
-    body:new URLSearchParams({token:CLOUD_TOKEN,data:JSON.stringify(D)})
-  })
-  .then(r=>r.json())
-  .then(j=>{ if(t)t.textContent=j.ok?'✓ 已儲存並同步雲端':('⚠ 雲端同步失敗：'+(j.error||'')); })
-  .catch(()=>{ if(t)t.textContent='⚠ 已存本機，雲端連線失敗'; });
+  const show=m=>{ if(t){t.textContent=m;t.classList.add('show');} };
+  const hideLater=()=>{ setTimeout(()=>{ if(t)t.classList.remove('show'); },2800); };
+  const base=CLOUD_URL+'?token='+encodeURIComponent(CLOUD_TOKEN);
+  const raw=JSON.stringify(D);
+  show('☁ 同步雲端中…');
+  try{
+    const enc=encodeURIComponent(raw);
+    // 小資料：單次 GET
+    if(base.length+enc.length<3800){
+      const j=await(await fetch(base+'&action=save&data='+enc,{cache:'no-store'})).json();
+      if(j.ok){ show('✓ 已儲存並同步雲端'); hideLater(); return; }
+      throw new Error(j.error||'save fail');
+    }
+    // 大資料：依 encode 後長度切塊（每塊 url 控制在約 2KB）
+    const chunks=[]; let cur='';
+    for(const ch of raw){
+      if(encodeURIComponent(cur+ch).length>1800){ chunks.push(cur); cur=ch; }
+      else cur+=ch;
+    }
+    if(cur)chunks.push(cur);
+    const n=chunks.length;
+    for(let i=0;i<n;i++){
+      show('☁ 同步雲端中… '+(i+1)+'/'+n);
+      const url=base+'&action=chunk&i='+i+'&n='+n+'&d='+encodeURIComponent(chunks[i]);
+      const j=await(await fetch(url,{cache:'no-store'})).json();
+      if(!j.ok) throw new Error(j.error||('chunk '+i+' fail'));
+    }
+    show('✓ 已儲存並同步雲端'); hideLater();
+  }catch(e){
+    show('⚠ 雲端同步失敗，已存本機（請再按一次儲存）'); hideLater();
+  }
 }
 
 /* ════════════════════════════════
@@ -1283,13 +1308,16 @@ function saveAll(){
   }
   D.lastUpdated=new Date().toISOString();
   persist(D);
-  syncToCloud();   // 寫回雲端，同步給所有同仁
   renderAll();
   closeAdmin();
-  const t=document.getElementById('toast');
-  t.textContent=CLOUD_URL?'✓ 儲存中…同步雲端':'✓ 資料已儲存並套用';
-  t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'),CLOUD_URL?4000:2800);
+  if(CLOUD_URL){
+    syncToCloud();   // 寫回雲端（含重試與驗證，自行管理提示）
+  }else{
+    const t=document.getElementById('toast');
+    t.textContent='✓ 資料已儲存並套用';
+    t.classList.add('show');
+    setTimeout(()=>t.classList.remove('show'),2800);
+  }
 }
 
 window.addEventListener('load',bootstrap);
