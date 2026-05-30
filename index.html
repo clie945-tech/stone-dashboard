@@ -466,6 +466,13 @@ tbody td{padding:8px 8px;}
       </div>
     </div>
 
+    <!-- 雲端診斷 -->
+    <div class="admin-sec" style="border-color:rgba(0,212,255,.25);">
+      <div class="admin-sec-title">▸ 雲端連線診斷</div>
+      <button class="ann-add" onclick="testCloud()">🔧 測試雲端連線</button>
+      <div id="cloudTestResult" style="margin-top:10px;font-size:14px;line-height:1.9;font-family:monospace;color:#ddeeff;white-space:pre-wrap;"></div>
+    </div>
+
     <div style="text-align:right;margin-top:4px">
       <button class="save-btn" onclick="saveAll()">💾 儲存並套用</button>
     </div>
@@ -563,6 +570,29 @@ async function bootstrap(){
   }
   renderAll();
 }
+// 雲端連線診斷（非破壞性：不會覆蓋正式資料）
+async function testCloud(){
+  const out=document.getElementById('cloudTestResult');
+  const log=[];
+  const push=m=>{ log.push(m); if(out)out.innerHTML=log.join('<br>'); };
+  if(!CLOUD_URL){ push('⚠ 尚未設定 CLOUD_URL'); return; }
+  push('來源網域：'+location.origin);
+  push('開始測試…');
+  // 1) 讀取測試
+  try{
+    const r=await fetch(CLOUD_URL,{cache:'no-store'});
+    const j=await r.json();
+    push('① 讀取：✅ 成功（'+(j.data?'雲端有資料':'雲端目前空白')+'）');
+  }catch(e){ push('① 讀取：❌ 失敗 → '+(e&&e.message||e)); }
+  // 2) 寫入路徑測試（送一塊永不組合的 chunk，不會動到 A1 正式資料）
+  try{
+    const u=CLOUD_URL+'?token='+encodeURIComponent(CLOUD_TOKEN)+'&action=chunk&i=0&n=999&d=ping';
+    const j=await(await fetch(u,{cache:'no-store'})).json();
+    push('② 寫入：'+(j.ok?'✅ 成功':'❌ 被拒 → '+(j.error||'')));
+  }catch(e){ push('② 寫入：❌ 失敗 → '+(e&&e.message||e)); }
+  push('測試完成');
+}
+
 // 存檔：以 GET 寫回雲端（瀏覽器對 Apps Script 的 GET 穩定可靠）。
 // 小資料直接單次送；大資料自動切成小塊分批送，伺服器端再組合，避開 URL 長度限制。
 async function syncToCloud(){
