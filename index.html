@@ -84,6 +84,15 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;
 
 /* badge */
 .badge{display:inline-block;padding:3px 8px;border-radius:4px;font-size:15px;font-weight:600;}
+/* 追蹤燈號 */
+.track-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;margin-top:4px;}
+.track-dot.pending{background:#888;box-shadow:0 0 6px #888;}
+.track-dot.doing{background:var(--yellow);box-shadow:0 0 8px var(--yellow);animation:pulse 2s infinite;}
+.track-dot.urgent{background:var(--red);box-shadow:0 0 10px var(--red);animation:pulse .8s infinite;}
+.track-dot.done{background:var(--green);box-shadow:0 0 8px var(--green);}
+.track-row{display:grid;grid-template-columns:auto 1fr 1fr auto;align-items:start;gap:14px;padding:14px 16px;border-radius:10px;border:1px solid rgba(255,255,255,.06);background:rgba(0,0,0,.15);transition:background .2s;}
+.track-row:hover{background:rgba(0,212,255,.04);}
+@keyframes pulse-urgent{0%,100%{opacity:1}50%{opacity:.3}}
 .b-g{background:rgba(0,255,136,.12);color:var(--green);border:1px solid rgba(0,255,136,.3);}
 .b-y{background:rgba(255,204,0,.12);color:var(--yellow);border:1px solid rgba(255,204,0,.3);}
 .b-r{background:rgba(255,68,102,.12);color:var(--red);border:1px solid rgba(255,68,102,.3);}
@@ -329,6 +338,17 @@ tbody td{padding:8px 8px;}
   </div>
 </div>
 
+<!-- 重要事項追蹤 -->
+<div>
+  <div class="sec-head">
+    <div class="sec-title">▍重要事項追蹤</div>
+    <div class="sec-line"></div>
+  </div>
+  <div class="gc" id="trackSection">
+    <div id="trackContent"></div>
+  </div>
+</div>
+
 <!-- ══════════════════════════════
      跑馬燈
 ══════════════════════════════ -->
@@ -413,6 +433,13 @@ tbody td{padding:8px 8px;}
       </div>
     </div>
 
+    <!-- 重要事項追蹤 -->
+    <div class="admin-sec">
+      <div class="admin-sec-title">▸ 重要事項追蹤</div>
+      <div id="trackAdmin"></div>
+      <button class="ann-add" style="margin-top:10px;width:100%" onclick="addTrack()">＋ 新增追蹤事項</button>
+    </div>
+
     <!-- 公告 -->
     <div class="admin-sec">
       <div class="admin-sec-title">▸ 跑馬燈公告訊息</div>
@@ -453,6 +480,11 @@ const DEFAULT = {
   calUrl: '',
   calId: '',
   calName: '',
+  trackItems: [
+    { status:'doing',  title:'範例事項一', note:'處理中，預計本週完成' },
+    { status:'pending',title:'範例事項二', note:'待分配負責人' },
+    { status:'done',   title:'範例事項三', note:'已完成' },
+  ],
   center: { target: 9300, desc: '113年度業績目標', govTarget: 5500, indTarget: 3800 },
   groups: [
     { id:'S', name:'S 組', color:'#00ff88', target:3000, gov:1320, ind:1100, unit:'千元' },
@@ -553,6 +585,7 @@ function renderAll(){
   renderBarChart();
   renderMarquee();
   renderCalendar();
+  renderTrack();
   // 更新時間顯示
   const el=document.getElementById('lastUpdatedDisp');
   if(el){
@@ -785,6 +818,41 @@ function renderBarChart(){
 /* ── 表格 ── */
 /* ── 排行 ── */
 
+/* ── 重要事項追蹤 ── */
+const TRACK_STATUS={
+  pending:{ label:'待處理', color:'#888' },
+  doing:  { label:'處理中', color:'var(--yellow)' },
+  urgent: { label:'急件',   color:'var(--red)' },
+  done:   { label:'已完成', color:'var(--green)' },
+};
+function renderTrack(){
+  const cont=document.getElementById('trackContent');
+  if(!cont)return;
+  if(!D.trackItems||D.trackItems.length===0){
+    cont.innerHTML=`<div style="text-align:center;padding:20px;color:var(--text);opacity:.35;font-size:15px;">尚無追蹤事項</div>`;
+    return;
+  }
+  let html=`<div style="display:grid;grid-template-columns:auto 1fr 1fr;gap:0;margin-bottom:8px;padding:0 16px;">
+    <div style="width:40px"></div>
+    <div style="font-size:14px;letter-spacing:2px;color:var(--cyan);opacity:.5;">事項說明</div>
+    <div style="font-size:14px;letter-spacing:2px;color:var(--cyan);opacity:.5;">處理現況</div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:8px;">`;
+  D.trackItems.forEach(item=>{
+    const s=TRACK_STATUS[item.status]||TRACK_STATUS.pending;
+    html+=`<div class="track-row">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:5px;padding-top:2px;">
+        <div class="track-dot ${item.status}"></div>
+        <span style="font-size:11px;color:${s.color};letter-spacing:1px;white-space:nowrap;">${s.label}</span>
+      </div>
+      <div style="font-size:17px;color:#ddeeff;line-height:1.5;">${item.title}</div>
+      <div style="font-size:15px;color:var(--text);opacity:.7;line-height:1.5;">${item.note||'—'}</div>
+    </div>`;
+  });
+  html+=`</div>`;
+  cont.innerHTML=html;
+}
+
 /* ── 本週行事曆 ── */
 function renderCalendar(){
   const cont=document.getElementById('calContent');
@@ -967,6 +1035,7 @@ function openAdmin(){
   document.getElementById('confPW').value='';
 
   renderGroupAdmin();
+  renderTrackAdmin();
   renderAnnAdmin();
   document.getElementById('adminModal').classList.add('open');
 }
@@ -1034,6 +1103,44 @@ function updateActualPreview(i){
   const unit=document.getElementById(`ag-u-${i}`).value||'千元';
   const el=document.getElementById(`ag-preview-${i}`);
   if(el) el.textContent=(gov+ind).toLocaleString()+' '+unit;
+}
+
+function renderTrackAdmin(){
+  const cont=document.getElementById('trackAdmin');
+  if(!cont)return;
+  cont.innerHTML='';
+  (D.trackItems||[]).forEach((item,i)=>{
+    const s=TRACK_STATUS[item.status]||TRACK_STATUS.pending;
+    cont.innerHTML+=`<div id="trk-wrap-${i}" style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end;margin-bottom:10px;padding:10px;background:rgba(0,0,0,.2);border-radius:8px;border:1px solid rgba(255,255,255,.06);">
+      <div class="field-row" style="margin-bottom:0;grid-column:1/-1;">
+        <label>事項說明</label>
+        <input type="text" id="trk-t-${i}" value="${item.title.replace(/"/g,'&quot;')}" placeholder="輸入事項說明">
+      </div>
+      <div class="field-row" style="margin-bottom:0">
+        <label>處理現況</label>
+        <input type="text" id="trk-n-${i}" value="${(item.note||'').replace(/"/g,'&quot;')}" placeholder="輸入處理現況">
+      </div>
+      <div class="field-row" style="margin-bottom:0">
+        <label>狀態</label>
+        <select id="trk-s-${i}" style="background:rgba(0,0,0,.4);border:1px solid var(--border);border-radius:6px;color:#fff;padding:7px 8px;font-size:15px;outline:none;width:100%;font-family:inherit;">
+          <option value="pending" ${item.status==='pending'?'selected':''}>⚪ 待處理</option>
+          <option value="doing"   ${item.status==='doing'  ?'selected':''}>🟡 處理中</option>
+          <option value="urgent"  ${item.status==='urgent' ?'selected':''}>🔴 急件</option>
+          <option value="done"    ${item.status==='done'   ?'selected':''}>🟢 已完成</option>
+        </select>
+      </div>
+      <button class="ann-del" style="margin-bottom:0;height:36px;" onclick="removeTrack(${i})">✕</button>
+    </div>`;
+  });
+}
+function addTrack(){
+  if(!D.trackItems)D.trackItems=[];
+  D.trackItems.push({status:'pending',title:'',note:''});
+  renderTrackAdmin();
+}
+function removeTrack(i){
+  D.trackItems.splice(i,1);
+  renderTrackAdmin();
 }
 
 function renderAnnAdmin(){
@@ -1105,6 +1212,13 @@ function saveAll(){
     g.gov=+document.getElementById(`ag-gov-${i}`)?.value||0;
     g.ind=+document.getElementById(`ag-ind-${i}`)?.value||0;
     g.unit=document.getElementById(`ag-u-${i}`)?.value||g.unit;
+  });
+  D.trackItems=[];
+  document.querySelectorAll('[id^="trk-wrap-"]').forEach((wrap,i)=>{
+    const status=document.getElementById(`trk-s-${i}`)?.value||'pending';
+    const title=document.getElementById(`trk-t-${i}`)?.value?.trim()||'';
+    const note=document.getElementById(`trk-n-${i}`)?.value?.trim()||'';
+    if(title)D.trackItems.push({status,title,note});
   });
   D.announcements=[];
   document.querySelectorAll('[id^="ann-"]').forEach(el=>{if(el.value.trim())D.announcements.push(el.value.trim());});
