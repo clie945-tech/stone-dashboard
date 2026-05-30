@@ -570,10 +570,12 @@ function jsonp(url){
 }
 
 // 開機：優先讀雲端，失敗才用本機（離線備援）
+let cloudReachable=false; // 本次開啟是否成功連到雲端（保護：未連到時存檔需確認）
 async function bootstrap(){
   if(CLOUD_URL){
     try{
       const j=await jsonp(CLOUD_URL);
+      cloudReachable=true; // 連得到雲端（不論是否有資料）
       if(j.ok&&j.data&&j.data.groups&&j.data.groups.length){
         // 以 DEFAULT 為底，套上雲端資料（補齊未來新欄位的預設值）
         D=Object.assign({},DEFAULT,j.data);
@@ -1320,6 +1322,10 @@ function importData(e){
 }
 
 function saveAll(){
+  // 保護：雲端啟用但本次未連到雲端時，提醒避免用舊資料覆蓋
+  if(CLOUD_URL&&!cloudReachable){
+    if(!confirm('⚠ 本次開啟未成功連到雲端，現在儲存可能會用舊資料覆蓋雲端最新版本。\n\n建議先重新整理頁面確認資料正確再存。\n\n仍要繼續儲存嗎？')) return;
+  }
   const np=document.getElementById('newPW').value;
   const cp=document.getElementById('confPW').value;
   if(np){if(np!==cp){alert('兩次密碼不一致！');return;}D.pw=np;}
