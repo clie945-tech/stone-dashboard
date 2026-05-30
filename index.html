@@ -1133,12 +1133,25 @@ function renderTrackAdmin(){
     </div>`;
   });
 }
+function syncTrackDOM(){
+  // 把目前 DOM 輸入值同步回 D.trackItems，避免重繪時清空
+  (D.trackItems||[]).forEach((_,i)=>{
+    const t=document.getElementById(`trk-t-${i}`);
+    const n=document.getElementById(`trk-n-${i}`);
+    const s=document.getElementById(`trk-s-${i}`);
+    if(t)D.trackItems[i].title=t.value;
+    if(n)D.trackItems[i].note=n.value;
+    if(s)D.trackItems[i].status=s.value;
+  });
+}
 function addTrack(){
   if(!D.trackItems)D.trackItems=[];
+  syncTrackDOM(); // 先儲存已填內容
   D.trackItems.push({status:'pending',title:'',note:''});
   renderTrackAdmin();
 }
 function removeTrack(i){
+  syncTrackDOM(); // 先儲存已填內容
   D.trackItems.splice(i,1);
   renderTrackAdmin();
 }
