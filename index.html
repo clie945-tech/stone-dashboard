@@ -554,12 +554,26 @@ function persist(d){localStorage.setItem('scc_data',JSON.stringify(d));}
 let D=load();
 
 /* ── 雲端共用資料庫 ── */
+// JSONP：用 <script> 載入跨網域資料，完全不受 CORS / Safari 限制（含手機 Safari）。
+function jsonp(url){
+  return new Promise((resolve,reject)=>{
+    const cb='__cb'+Math.random().toString(36).slice(2)+Date.now();
+    const s=document.createElement('script');
+    let done=false;
+    const cleanup=()=>{ try{delete window[cb];}catch(_){window[cb]=undefined;} if(s.parentNode)s.parentNode.removeChild(s); clearTimeout(timer); };
+    window[cb]=data=>{ done=true; resolve(data); cleanup(); };
+    const timer=setTimeout(()=>{ if(!done){ cleanup(); reject(new Error('逾時')); } },20000);
+    s.onerror=()=>{ cleanup(); reject(new Error('載入失敗')); };
+    s.src=url+(url.includes('?')?'&':'?')+'callback='+cb;
+    document.body.appendChild(s);
+  });
+}
+
 // 開機：優先讀雲端，失敗才用本機（離線備援）
 async function bootstrap(){
   if(CLOUD_URL){
     try{
-      const r=await fetch(CLOUD_URL,{cache:'no-store'});
-      const j=await r.json();
+      const j=await jsonp(CLOUD_URL);
       if(j.ok&&j.data&&j.data.groups&&j.data.groups.length){
         // 以 DEFAULT 為底，套上雲端資料（補齊未來新欄位的預設值）
         D=Object.assign({},DEFAULT,j.data);
@@ -580,14 +594,13 @@ async function testCloud(){
   push('開始測試…');
   // 1) 讀取測試
   try{
-    const r=await fetch(CLOUD_URL,{cache:'no-store'});
-    const j=await r.json();
+    const j=await jsonp(CLOUD_URL);
     push('① 讀取：✅ 成功（'+(j.data?'雲端有資料':'雲端目前空白')+'）');
   }catch(e){ push('① 讀取：❌ 失敗 → '+(e&&e.message||e)); }
   // 2) 寫入路徑測試（送一塊永不組合的 chunk，不會動到 A1 正式資料）
   try{
     const u=CLOUD_URL+'?token='+encodeURIComponent(CLOUD_TOKEN)+'&action=chunk&i=0&n=999&d=ping';
-    const j=await(await fetch(u,{cache:'no-store'})).json();
+    const j=await jsonp(u);
     push('② 寫入：'+(j.ok?'✅ 成功':'❌ 被拒 → '+(j.error||'')));
   }catch(e){ push('② 寫入：❌ 失敗 → '+(e&&e.message||e)); }
   push('測試完成');
@@ -605,9 +618,9 @@ async function syncToCloud(){
   show('☁ 同步雲端中…');
   try{
     const enc=encodeURIComponent(raw);
-    // 小資料：單次 GET
+    // 小資料：單次 JSONP
     if(base.length+enc.length<3800){
-      const j=await(await fetch(base+'&action=save&data='+enc,{cache:'no-store'})).json();
+      const j=await jsonp(base+'&action=save&data='+enc);
       if(j.ok){ show('✓ 已儲存並同步雲端'); hideLater(); return; }
       throw new Error(j.error||'save fail');
     }
@@ -624,8 +637,8 @@ async function syncToCloud(){
       const url=base+'&action=chunk&i='+i+'&n='+n+'&d='+encodeURIComponent(chunks[i]);
       let ok=false,lastErr='';
       for(let a=0;a<3&&!ok;a++){              // 每塊重試最多 3 次
-        try{ const j=await(await fetch(url,{cache:'no-store'})).json(); if(j.ok){ok=true;}else{lastErr=j.error||'';} }
-        catch(e){ lastErr=String(e); }
+        try{ const j=await jsonp(url); if(j.ok){ok=true;}else{lastErr=j.error||'';} }
+        catch(e){ lastErr=String(e&&e.message||e); }
         if(!ok) await new Promise(s=>setTimeout(s,600));
       }
       if(!ok) throw new Error('chunk '+i+'：'+lastErr);
