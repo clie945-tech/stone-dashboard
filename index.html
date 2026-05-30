@@ -394,14 +394,20 @@ tbody td{padding:8px 8px;}
         <label>Google Apps Script 網址</label>
         <input type="text" id="f-calurl" placeholder="https://script.google.com/macros/s/…/exec" style="font-size:13px;">
       </div>
-      <div style="display:flex;gap:10px;align-items:center;margin-top:6px;">
+      <div style="display:flex;gap:10px;align-items:center;margin-top:8px;flex-wrap:wrap;">
+        <button class="ann-add" onclick="loadCalList()" style="padding:5px 14px;">📋 載入日曆清單</button>
         <button class="ann-add" onclick="testCalUrl()" style="padding:5px 14px;">🔗 測試連線</button>
         <span id="calTestResult" style="font-size:14px;opacity:.7;"></span>
       </div>
-      <div style="font-size:13px;color:var(--cyan);opacity:.45;margin-top:8px;line-height:1.8;">
-        ① 開啟 <b>script.google.com</b> → 新增專案 → 貼上腳本程式碼<br>
-        ② 部署 → 新增部署 → 類型選「網頁應用程式」→ 存取權選「所有人」<br>
-        ③ 複製部署網址貼到上方欄位
+      <!-- 日曆選單（載入後顯示） -->
+      <div id="calListWrap" style="display:none;margin-top:12px;">
+        <div class="field-row" style="margin-bottom:0">
+          <label>選擇要顯示的日曆</label>
+          <select id="calSelect" onchange="onCalSelect()"
+            style="background:rgba(0,0,0,.4);border:1px solid var(--border);border-radius:6px;color:#fff;padding:7px 10px;font-size:15px;outline:none;width:100%;font-family:inherit;">
+          </select>
+        </div>
+        <div id="calSelectedName" style="font-size:13px;color:var(--green);margin-top:6px;opacity:.8;"></div>
       </div>
     </div>
 
@@ -443,6 +449,8 @@ const DEFAULT = {
   pw: '1234',
   lastUpdated: null,
   calUrl: '',
+  calId: '',
+  calName: '',
   center: { target: 9300, desc: '113年度業績目標', govTarget: 5500, indTarget: 3800 },
   groups: [
     { id:'S', name:'S 組', color:'#00ff88', target:3000, gov:1320, ind:1100, unit:'千元' },
@@ -784,19 +792,21 @@ function renderCalendar(){
     return;
   }
   cont.innerHTML=`<div style="text-align:center;padding:20px;color:var(--cyan);opacity:.4;font-size:15px;">🔄 載入行事曆資料中…</div>`;
-  fetch(D.calUrl)
+  const fetchUrl=D.calUrl+(D.calId?'?calId='+encodeURIComponent(D.calId):'');
+  fetch(fetchUrl)
     .then(r=>r.json())
     .then(data=>{
       if(!data.ok||!data.events){throw new Error('格式錯誤');}
       const evs=data.events;
+      const calLabel=data.calName?`<div style="font-size:13px;color:var(--cyan);opacity:.45;margin-bottom:12px;letter-spacing:1px;">📅 ${data.calName}</div>`:'';
       if(evs.length===0){
-        cont.innerHTML=`<div style="text-align:center;padding:20px;color:var(--text);opacity:.4;font-size:15px;">本週尚無行程</div>`;
+        cont.innerHTML=calLabel+`<div style="text-align:center;padding:20px;color:var(--text);opacity:.4;font-size:15px;">本週尚無行程</div>`;
         return;
       }
       // 按日期分組
       const groups={};
       evs.forEach(e=>{if(!groups[e.date])groups[e.date]=[];groups[e.date].push(e);});
-      let html='<div style="display:flex;flex-direction:column;gap:14px;">';
+      let html=calLabel+'<div style="display:flex;flex-direction:column;gap:14px;">';
       Object.entries(groups).forEach(([date,items])=>{
         html+=`<div>
           <div style="font-size:15px;letter-spacing:2px;color:var(--cyan);opacity:.7;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid rgba(0,212,255,.15);">${date}</div>
@@ -819,6 +829,38 @@ function renderCalendar(){
     .catch(()=>{
       cont.innerHTML=`<div style="text-align:center;padding:20px;color:var(--red);opacity:.7;font-size:15px;">⚠️ 無法取得行事曆資料<br><span style="font-size:13px;opacity:.7">請確認 Apps Script 網址是否正確，或連線是否正常</span></div>`;
     });
+}
+
+function loadCalList(){
+  const url=document.getElementById('f-calurl').value.trim();
+  const el=document.getElementById('calTestResult');
+  if(!url){el.style.color='var(--yellow)';el.textContent='請先填入網址';return;}
+  el.style.color='var(--cyan)';el.textContent='載入中…';
+  fetch(url+'?action=list')
+    .then(r=>r.json())
+    .then(data=>{
+      if(!data.ok||!data.calendars){throw new Error();}
+      const sel=document.getElementById('calSelect');
+      sel.innerHTML='';
+      data.calendars.forEach(c=>{
+        const opt=document.createElement('option');
+        opt.value=c.id;
+        opt.textContent=c.name+(c.primary?' ★（主要日曆）':'');
+        if(c.id===D.calId)opt.selected=true;
+        sel.appendChild(opt);
+      });
+      document.getElementById('calListWrap').style.display='block';
+      el.style.color='var(--green)';
+      el.textContent=`✅ 找到 ${data.calendars.length} 個日曆`;
+      onCalSelect();
+    })
+    .catch(()=>{el.style.color='var(--red)';el.textContent='❌ 載入失敗，請確認網址與部署設定';});
+}
+
+function onCalSelect(){
+  const sel=document.getElementById('calSelect');
+  const name=sel.options[sel.selectedIndex]?.text||'';
+  document.getElementById('calSelectedName').textContent=`目前選取：${name}`;
 }
 
 function testCalUrl(){
@@ -871,6 +913,13 @@ function openAdmin(){
   // center
   document.getElementById('f-calurl').value=D.calUrl||'';
   document.getElementById('calTestResult').textContent='';
+  document.getElementById('calListWrap').style.display='none';
+  if(D.calId&&D.calName){
+    document.getElementById('calListWrap').style.display='block';
+    const sel=document.getElementById('calSelect');
+    sel.innerHTML=`<option value="${D.calId}">${D.calName}</option>`;
+    document.getElementById('calSelectedName').textContent=`目前選取：${D.calName}`;
+  }
   document.getElementById('f-ctarget').value=c.target;
   document.getElementById('f-cdesc').value=c.desc||'';
   document.getElementById('f-govtarget').value=c.govTarget||'';
@@ -1022,6 +1071,11 @@ function saveAll(){
   document.querySelectorAll('[id^="ann-"]').forEach(el=>{if(el.value.trim())D.announcements.push(el.value.trim());});
 
   D.calUrl=document.getElementById('f-calurl').value.trim();
+  const selEl=document.getElementById('calSelect');
+  if(selEl&&selEl.value){
+    D.calId=selEl.value;
+    D.calName=selEl.options[selEl.selectedIndex]?.text||'';
+  }
   D.lastUpdated=new Date().toISOString();
   persist(D);
   renderAll();
