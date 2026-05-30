@@ -90,7 +90,8 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;
 .track-dot.doing{background:var(--yellow);box-shadow:0 0 8px var(--yellow);animation:pulse 2s infinite;}
 .track-dot.urgent{background:var(--red);box-shadow:0 0 10px var(--red);animation:pulse .8s infinite;}
 .track-dot.done{background:var(--green);box-shadow:0 0 8px var(--green);}
-.track-row{display:grid;grid-template-columns:auto 1fr 1fr auto;align-items:start;gap:14px;padding:14px 16px;border-radius:10px;border:1px solid rgba(255,255,255,.06);background:rgba(0,0,0,.15);transition:background .2s;}
+.track-header{display:grid;grid-template-columns:auto 1fr 1fr;gap:0;margin-bottom:8px;padding:0 16px;}
+.track-row{display:grid;grid-template-columns:auto 1fr 1fr;align-items:start;gap:14px;padding:14px 16px;border-radius:10px;border:1px solid rgba(255,255,255,.06);background:rgba(0,0,0,.15);transition:background .2s;}
 .track-row:hover{background:rgba(0,212,255,.04);}
 @keyframes pulse-urgent{0%,100%{opacity:1}50%{opacity:.3}}
 .b-g{background:rgba(0,255,136,.12);color:var(--green);border:1px solid rgba(0,255,136,.3);}
@@ -249,6 +250,10 @@ tbody td{padding:8px 8px;}
   .chart-wrap{overflow-x:auto;}
   /* section title */
   .sec-title{font-size:15px;letter-spacing:2px;}
+  /* 重要事項追蹤 */
+  .track-header{display:none;}
+  .track-row{grid-template-columns:auto 1fr;gap:10px;}
+  .track-row>div:nth-child(3){grid-column:2;padding-left:0;}
 }
 @media(max-width:480px){
   .wrap{padding:8px;}
@@ -833,7 +838,7 @@ function renderTrack(){
     cont.innerHTML=`<div style="text-align:center;padding:20px;color:var(--text);opacity:.35;font-size:15px;">尚無追蹤事項</div>`;
     return;
   }
-  let html=`<div style="display:grid;grid-template-columns:auto 1fr 1fr;gap:0;margin-bottom:8px;padding:0 16px;">
+  let html=`<div class="track-header">
     <div style="width:40px"></div>
     <div style="font-size:14px;letter-spacing:2px;color:var(--cyan);opacity:.5;">事項說明</div>
     <div style="font-size:14px;letter-spacing:2px;color:var(--cyan);opacity:.5;">處理現況</div>
