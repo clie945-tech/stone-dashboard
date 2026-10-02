@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>高雄國中題庫組卷平台</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topbar no-print">
+  <div class="brand">
+    <div class="logo">題</div>
+    <div>
+      <div class="brand-t">高雄國中題庫組卷平台</div>
+      <div class="brand-s" id="brandSchool">陽明國中・歷年課程與考題資料庫</div>
+    </div>
+  </div>
+  <nav id="tabs">
+    <button data-tab="dash" class="on">總覽</button>
+    <button data-tab="bank">題庫</button>
+    <button data-tab="add">新增／匯入</button>
+    <button data-tab="gen">產生考卷／習作</button>
+    <button data-tab="curr">課程架構</button>
+    <button data-tab="src">資料蒐集</button>
+  </nav>
+</header>
+
+<main class="wrap">
+
+<!-- ═════════ 總覽 ═════════ -->
+<section id="tab-dash" class="tab on no-print">
+  <div class="grid4" id="kpis"></div>
+  <div class="grid2">
+    <div class="card"><h3>各科題數</h3><div id="chartSubject"></div></div>
+    <div class="card"><h3>各學期題數</h3><div id="chartTerm"></div></div>
+  </div>
+  <div class="grid2">
+    <div class="card"><h3>題目來源（學校）</h3><div id="chartSchool"></div></div>
+    <div class="card"><h3>最近產生的卷子</h3><div id="recentPapers"></div></div>
+  </div>
+  <div class="card">
+    <h3>平台設定</h3>
+    <div class="form-row">
+      <label>主要學校<input id="setSchool" placeholder="高雄市立陽明國民中學"></label>
+      <label>使用版本<select id="setTextbook"><option value="">（未指定）</option><option>康軒</option><option>南一</option><option>翰林</option></select></label>
+      <label>試卷抬頭顯示名稱<input id="setHeader" placeholder="例：高雄市立陽明國中"></label>
+    </div>
+    <div class="btns">
+      <button class="primary" id="btnSaveSettings">儲存設定</button>
+      <button id="btnExport">⬇ 匯出整個資料庫（JSON 備份）</button>
+      <label class="btn-file">⬆ 匯入資料庫 JSON<input type="file" id="fileImportDB" accept=".json" hidden></label>
+      <button class="danger" id="btnReset">清空資料庫</button>
+    </div>
+    <p class="hint">資料存在這台電腦的瀏覽器中。換電腦或與其他老師共用時，請用「匯出／匯入 JSON」傳遞；建議每次大量輸入後都備份一次。</p>
+  </div>
+</section>
+
+<!-- ═════════ 題庫 ═════════ -->
+<section id="tab-bank" class="tab no-print">
+  <div class="card">
+    <div class="filters">
+      <select id="fSubject"></select>
+      <select id="fTerm"></select>
+      <select id="fUnit"></select>
+      <select id="fType"></select>
+      <select id="fDiff"><option value="">全部難度</option><option value="1">易</option><option value="2">中</option><option value="3">難</option></select>
+      <select id="fSchool"></select>
+      <input id="fKey" placeholder="關鍵字（題目、解析、標籤）">
+    </div>
+    <div class="bank-bar"><span id="bankCount"></span>
+      <span class="btns"><button id="btnBankExport">匯出篩選結果 JSON</button><button class="danger" id="btnBankDelete">刪除篩選結果</button></span>
+    </div>
+  </div>
+  <div id="bankList"></div>
+  <div class="pager" id="bankPager"></div>
+</section>
+
+<!-- ═════════ 新增／匯入 ═════════ -->
+<section id="tab-add" class="tab no-print">
+  <div class="subtabs">
+    <button data-sub="one" class="on">逐題新增</button>
+    <button data-sub="text">貼上文字批次匯入</button>
+    <button data-sub="csv">Excel／CSV 匯入</button>
+  </div>
+
+  <div class="card sub on" id="sub-one">
+    <h3 id="formTitle">新增題目</h3>
+    <div class="form-row">
+      <label>科目<select id="qSubject"></select></label>
+      <label>學期<select id="qTerm"></select></label>
+      <label class="grow">單元<select id="qUnit"></select></label>
+    </div>
+    <div class="form-row">
+      <label>題型<select id="qType"></select></label>
+      <label>難度<select id="qDiff"><option value="1">易</option><option value="2" selected>中</option><option value="3">難</option></select></label>
+      <label class="grow">標籤（以逗號分隔）<input id="qTags" placeholder="例：畢氏定理, 會考題型"></label>
+    </div>
+    <label>題目內容<textarea id="qStem" rows="4" placeholder="數學式可用 $x^2+1$；填充空格用 ___；圖片用 ![](圖片網址)"></textarea></label>
+    <label id="wrapOpts">選項（一行一個，不用寫 (A)(B)）<textarea id="qOpts" rows="4"></textarea></label>
+    <div class="form-row">
+      <label class="grow">答案<input id="qAns" placeholder="單選：B／多選：AC／是非：O 或 X／其他：直接寫答案"></label>
+    </div>
+    <label>解析<textarea id="qExp" rows="3"></textarea></label>
+    <div class="form-row">
+      <label class="grow">來源學校<input id="qSchool" list="schoolList"></label>
+      <label>學年度<input id="qYear" placeholder="例：113" size="6"></label>
+      <label>考試別<select id="qExam"></select></label>
+    </div>
+    <datalist id="schoolList"></datalist>
+    <div class="preview-box"><div class="muted">預覽</div><div id="qPreview"></div></div>
+    <div class="btns">
+      <button class="primary" id="btnSaveQ">儲存題目</button>
+      <button id="btnSaveNext">儲存並繼續新增同單元</button>
+      <button id="btnCancelEdit" hidden>取消編輯</button>
+    </div>
+  </div>
+
+  <div class="card sub" id="sub-text">
+    <h3>貼上文字批次匯入</h3>
+    <p class="hint">適合把考卷 Word／PDF 的文字直接複製貼上。題目之間以<b>空白行</b>分隔；先在上方選好預設值，個別題目可用「單元：」「難度：」等行覆寫。</p>
+    <div class="form-row">
+      <label>科目<select id="tSubject"></select></label>
+      <label>學期<select id="tTerm"></select></label>
+      <label class="grow">預設單元<select id="tUnit"></select></label>
+      <label>預設難度<select id="tDiff"><option value="1">易</option><option value="2" selected>中</option><option value="3">難</option></select></label>
+    </div>
+    <div class="form-row">
+      <label class="grow">來源學校<input id="tSchool" list="schoolList"></label>
+      <label>學年度<input id="tYear" placeholder="113" size="6"></label>
+      <label>考試別<select id="tExam"></select></label>
+    </div>
+    <details class="fmt"><summary>格式範例（點開）</summary><pre>1. 下列哪一個數最小？
+(A) -3 (B) 0 (C) 2 (D) -5
+答案：D
+解析：負數中絕對值越大者越小。
+
+2. 化簡 $2^5\times2^3\div2^6$ = ___。
+答案：4
+難度：易
+
+3. 直角三角形兩股為 5、12，求斜邊長。
+答案：13
+題型：計算
+單元：畢氏定理
+標籤：會考題型, 基礎</pre></details>
+    <textarea id="tText" rows="14" placeholder="在這裡貼上題目文字…"></textarea>
+    <div class="btns"><button id="btnParse">解析預覽</button><button class="primary" id="btnImportText" disabled>確認匯入</button></div>
+    <div id="parseResult"></div>
+  </div>
+
+  <div class="card sub" id="sub-csv">
+    <h3>Excel／CSV 匯入</h3>
+    <p class="hint">在 Excel 依範本填寫後「另存新檔 → CSV UTF-8」，再上傳。欄位：科目、學期、單元、題型、難度、題目、選項A～選項E、答案、解析、學校、學年度、考試別、標籤。</p>
+    <div class="btns">
+      <button id="btnCsvTpl">⬇ 下載 CSV 範本</button>
+      <label class="btn-file primary">⬆ 選擇 CSV 檔匯入<input type="file" id="fileCsv" accept=".csv,text/csv" hidden></label>
+    </div>
+    <div id="csvResult"></div>
+  </div>
+</section>
+
+<!-- ═════════ 產生考卷／習作 ═════════ -->
+<section id="tab-gen" class="tab">
+  <div class="card no-print">
+    <div class="form-row">
+      <label class="grow">標題<input id="gTitle" placeholder="例：八年級數學第一次段考複習卷"></label>
+      <label>科目<select id="gSubject"></select></label>
+      <label>產出類型<select id="gMode"><option value="exam">複習考卷</option><option value="work">習作／學習單</option></select></label>
+    </div>
+    <div class="label">範圍（學期）</div>
+    <div class="chips" id="gTerms"></div>
+    <div class="label">範圍（單元）<a href="#" id="gUnitAll">全選</a>／<a href="#" id="gUnitNone">全不選</a></div>
+    <div class="unit-list" id="gUnits"></div>
+
+    <div class="label">題型與題數</div>
+    <table class="tbl" id="gTypes"><thead><tr><th>題型</th><th>題庫可用</th><th>題數</th><th>每題配分</th></tr></thead><tbody></tbody></table>
+
+    <div class="form-row">
+      <label>難度配比 易<input type="number" id="gD1" value="30" min="0" max="100" size="3">%</label>
+      <label>中<input type="number" id="gD2" value="50" min="0" max="100" size="3">%</label>
+      <label>難<input type="number" id="gD3" value="20" min="0" max="100" size="3">%</label>
+      <label>來源<select id="gSource"></select></label>
+    </div>
+    <div class="form-row">
+      <label class="chk"><input type="checkbox" id="gAvoid" checked> 避開最近常出過的題目</label>
+      <label class="chk"><input type="checkbox" id="gShuffleOpt"> 選項隨機排序</label>
+      <label class="chk"><input type="checkbox" id="gExpl" checked> 答案卷附解析</label>
+      <label>亂數種子<input id="gSeed" size="8"></label>
+    </div>
+    <div class="btns">
+      <button class="primary" id="btnGen">🎲 產生</button>
+      <button id="btnRegen">換一批題目</button>
+      <button id="btnPrintPaper" disabled>🖨 列印試卷</button>
+      <button id="btnPrintKey" disabled>🖨 列印答案卷</button>
+      <button id="btnSavePaper" disabled>💾 儲存並記錄出題</button>
+    </div>
+    <div id="genMsg"></div>
+  </div>
+  <div id="paperArea"></div>
+</section>
+
+<!-- ═════════ 課程架構 ═════════ -->
+<section id="tab-curr" class="tab no-print">
+  <div class="card">
+    <h3>課程架構（單元清單）</h3>
+    <p class="hint">預設依 108 課綱整理通用單元。請依陽明國中實際使用的版本（康軒／南一／翰林）與段考範圍調整：一行一個單元。改名時題目會跟著同一行的單元一起改名。</p>
+    <div class="form-row">
+      <label>科目<select id="cSubject"></select></label>
+      <label>學期<select id="cTerm"></select></label>
+    </div>
+    <textarea id="cUnits" rows="14"></textarea>
+    <div class="btns"><button class="primary" id="btnSaveCurr">儲存單元</button><button id="btnResetCurr">恢復預設</button></div>
+    <div id="currStats"></div>
+  </div>
+</section>
+
+<!-- ═════════ 資料蒐集 ═════════ -->
+<section id="tab-src" class="tab no-print">
+  <div class="card">
+    <h3>考古題蒐集進度</h3>
+    <div class="form-row">
+      <label class="grow">學校<select id="covSchool"></select></label>
+      <label>學期<select id="covTerm"></select></label>
+    </div>
+    <div id="coverage"></div>
+    <p class="hint">表格顯示每個「學年度 × 考試別」已蒐集到的題數，空白格就是還缺的考卷。</p>
+  </div>
+  <div class="card guide">
+    <h3>資料從哪裡來？</h3>
+    <ol>
+      <li><b>學校官網公告的段考試題</b>：高雄市許多國中（含陽明國中）會在教務處／教學組頁面公告歷次段考試題與答案，可下載後用「貼上文字批次匯入」。</li>
+      <li><b>國中教育會考歷屆試題</b>：心測中心（國中教育會考網站）公開歷屆試題與參考答案，考試別請選「國中教育會考」，學期依該題範圍選擇。</li>
+      <li><b>校內老師自編題、複習講義</b>：考試別選「自編題」或「複習考」，來源學校填本校。</li>
+      <li><b>課程進度與範圍</b>：以學校每學期公告的「段考範圍」調整「課程架構」頁的單元，組卷時才能精準勾選範圍。</li>
+    </ol>
+    <h3>使用注意</h3>
+    <ul>
+      <li>考題著作權屬原命題學校／單位，本平台建議僅供校內教學與學生複習使用，不公開散布，並保留來源標示。</li>
+      <li>平台內建的「平台範例」題目為自編示範題，並非任何學校的真實考題；正式使用前可在題庫頁以來源篩選後刪除。</li>
+      <li>PDF 掃描檔需先以 OCR 轉成文字（例如 Google 雲端硬碟「以 Google 文件開啟」），再貼上匯入並人工校對。</li>
+    </ul>
+  </div>
+</section>
+</main>
+
+<div id="toast"></div>
+
+<script src="data/curriculum.js"></script>
+<script src="data/seed-questions.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
